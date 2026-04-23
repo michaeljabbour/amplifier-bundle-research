@@ -1,7 +1,7 @@
 ---
 bundle:
   name: research-latex-authoring
-  version: 0.2.0
+  version: 0.4.0
   description: "LaTeX authoring, compilation, and conference formatting capabilities. Composes venue-formatter and technical-writer agents for comprehensive LaTeX workflow support."
 
 agents:

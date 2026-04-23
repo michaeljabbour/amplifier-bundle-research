@@ -1,7 +1,7 @@
 ---
 bundle:
   name: research-conference-styling
-  version: 0.2.0
+  version: 0.4.0
   description: "Multi-conference format support and conversion. Provides awareness of supported conference formats through context files."
 
 context:

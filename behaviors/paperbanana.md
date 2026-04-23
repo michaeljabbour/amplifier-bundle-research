@@ -1,7 +1,7 @@
 ---
 bundle:
   name: research-paperbanana
-  version: 0.2.0
+  version: 0.4.0
   description: "PaperBanana multi-agent figure generation with quality veto rules. Based on arXiv 2601.23265 research, provides automated iterative refinement with 8 publication-ready quality checks."
 
 tools:

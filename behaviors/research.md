@@ -1,7 +1,7 @@
 ---
 bundle:
   name: research-behaviors
-  version: 0.2.0
+  version: 0.4.0
   description: |
     Composite behavior bundle. Packages all seven research-bundle behaviors
     (honest-pivot, exploratory-labeling, paperbanana, figure-generation,

@@ -1,7 +1,7 @@
 ---
 bundle:
   name: research
-  version: 0.2.0
+  version: 0.4.0
   description: |
     Superpowers for scientific rigor. From sharpened question to venue-ready
     output, with pre-registration discipline and honest-pivot defaults baked

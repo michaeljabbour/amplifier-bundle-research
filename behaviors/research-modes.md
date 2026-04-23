@@ -1,7 +1,7 @@
 ---
 bundle:
   name: research-modes-behavior
-  version: 0.2.0
+  version: 0.4.0
   description: |
     Wires the research bundle's 6 interactive modes (/question, /study-plan,
     /execute, /critique, /draft, /publish) as real slash commands via the

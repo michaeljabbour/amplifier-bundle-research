@@ -1,6 +1,6 @@
 # Specification — amplifier-bundle-research
 
-**Status:** `v0.2.0` — fully specified and implemented, pre-functional-test
+**Status:** `v0.4.0` — v0.3 verification PASS (scripts, modules, smoke tests) + v0.4 simulated persona acceptance PASS (A patent attorney, B ML researcher, C peer reviewer). Real-user testing scheduled post-v0.4 per roadmap.
 **Author:** Michael Jabbour
 **Target ecosystem:** Microsoft Amplifier
 

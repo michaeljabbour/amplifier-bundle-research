@@ -1,7 +1,7 @@
 ---
 bundle:
   name: research-exploratory-labeling
-  version: 0.2.0
+  version: 0.4.0
   description: |
     Automatically tags any finding, analysis, or claim that was NOT in the
     pre-registration as exploratory. Complements honest-pivot — where

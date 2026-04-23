@@ -1,278 +1,241 @@
-# Handoff — amplifier-bundle-research v0.2.0
+# Handoff — amplifier-bundle-research v0.4.0
 
-**Date:** April 22, 2026 (post-Round-4: modes engagement + v0.3 priorities)
-**Verification:** Bundle loads. All 6 research modes register as slash commands. Natural-language recipe invocation works. `tool-paperbanana` Python module installed and protocol-compliant. Smoke tested twice; all green.
-**To:** Whoever picks this up next — MJ locally, another Claude Code / Cowork session, Copilot, or a PR reviewer
+**Date:** April 22, 2026 (v0.3 verification + v0.4 simulated persona acceptance)
+**Published:** https://github.com/michaeljabbour/amplifier-bundle-research
+**Verified:** Bundle loads from git URL. All 6 modes register as slash commands. Five v0.3 programmatic tests PASS. Three v0.4 simulated persona acceptance tests PASS. Ready for real-user testing (post-v0.4) and the v1.0 dogfood paper.
 
 ---
 
 ## Current state
 
-**Bundle is fully loadable, Amplifier-hygienic, protocol-compliant, and mode-engaged.** The v0.3 reproducibility, critique-gate, and non-academic venue work are complete. Ready for first end-to-end recipe execution.
+**Bundle is published, loadable from git, and has passed both v0.3 programmatic verification and v0.4 simulated persona acceptance.** Real human-in-the-loop validation is the next milestone (tracked as post-v0.4).
 
-**Location:** local clone of `github.com/michaeljabbour/amplifier-bundle-research`
-**Registered as:** `research-dev` (via `file://` source)
-
-### Verified working
-
+**Public install:**
 ```bash
-# Bundle registration:
-$ cd /path/to/amplifier-bundle-research
-$ amplifier bundle add "file://$(pwd)" --name research-dev
-✓ Added bundle 'research-dev' (version: 0.2.0, canonical: research)
-
-# Bundle composes with 53 agents + 17 modes (6 from research bundle):
-$ amplifier run --bundle research-dev --mode single "Call mode tool with operation=list"
-→ critique (research), draft (research), execute (research), publish (research),
-  question (research), study-plan (research) ← all 6 registered
-
-# tool-paperbanana protocol-compliant and pip-installed:
-$ pip install -e modules/tool-paperbanana
-✓ Successfully installed tool-paperbanana-0.2.0
-
-# Mode activation works via warn-gate (standard modes bundle behavior):
-$ amplifier run --bundle research-dev --mode single "Set mode to 'question'"
-→ First call: denied (warn gate — standard, retry to confirm)
-→ Second call: would activate
+amplifier bundle add --app git+https://github.com/michaeljabbour/amplifier-bundle-research@main
+amplifier bundle use research
+amplifier
 ```
 
-### Inventory (post-v0.3)
+**Local development** (from a clone):
+```bash
+git clone https://github.com/michaeljabbour/amplifier-bundle-research.git
+cd amplifier-bundle-research
+amplifier bundle add "file://$(pwd)" --name research-dev
+amplifier run --bundle research-dev --mode chat "your prompt here"
+```
+
+### Inventory (v0.4.0)
 
 | Layer | Count | Status |
 |---|---|---|
 | Agents | 10 | Valid `meta:` frontmatter, `model_role`, common-agent-base footer |
-| Modes (runtime) | 6 | All 6 register as slash commands: `/question`, `/study-plan` (renamed from `/plan`), `/execute`, `/critique`, `/draft`, `/publish` |
-| Recipes | 9 | 8 mode-pipeline recipes have `publish_gates:` (critique_required + honest_pivot_acknowledged); paperbanana-figure is staged |
-| Behaviors | 7 | Six domain behaviors + composite + new research-modes behavior wire everything up |
-| Standalones | 1 | `bundles/dev.yaml` for local testing |
-| Context files | 17 | Instructions + 6 conference formats + 3 venue formats (USPTO, policy-memo, NSF-grant) + imaging refs + paperbanana methodology + 3 awareness files |
-| Templates | 32+ | Preregistration (base + patent-prereg + policy-prereg); 5 skeleton markdowns; LaTeX IMRAD + ACL + IEEE; **new v0.3**: environment.yml, requirements.in/.txt, Dockerfile.research, REPRODUCIBILITY.md, execution-log.yaml, evidence-log.yaml |
-| Scripts | 4 | compile_latex, validate_format, generate_figure, download_templates |
-| Modules | 1 | `tool-paperbanana` — protocol-compliant + pip-installed |
-| Docs | 11 | SPEC (v0.2.0), ARCHITECTURE, PERSONAS, USE_CASES, UX_MOCKUP, LINEAGE, ROADMAP, GAP_ANALYSIS, SESSION_HISTORY, HANDOFF, session-1-transcript |
-| Structural diagram | 2 | `bundle.dot` + `bundle.png` (source_hash current as of 22 Apr 2026) |
+| Modes (runtime) | 6 | All register as slash commands: `/question`, `/study-plan`, `/execute`, `/critique`, `/draft`, `/publish` |
+| Recipes | 9 | 8 mode-pipeline recipes have `publish_gates:`; paperbanana-figure is staged |
+| Behaviors | 7 | Six domain + composite + research-modes wiring |
+| Standalones | 1 | `bundles/dev.yaml` |
+| Context files | 17 | Instructions + 6 conference formats + 3 venue formats + imaging + paperbanana + awareness files |
+| Templates | 32+ | Including Round 4 reproducibility stack: `environment.yml`, `requirements.in/.txt`, `Dockerfile.research`, `REPRODUCIBILITY.md`, `execution-log.yaml`, `evidence-log.yaml` |
+| Scripts | 4 | `compile_latex.py` (arxiv default, compiles cleanly), `validate_format.py`, `generate_figure.py`, `download_templates.py` (ACL + IEEE + ACM via CTAN; NeurIPS + ICML manual-download-instructed) |
+| Modules | 1 | `tool-paperbanana` — protocol-compliant (all 8 checklist boxes), pip-installable, import-verified |
+| Docs | 11 | SPEC (v0.4.0), ARCHITECTURE, PERSONAS, USE_CASES, UX_MOCKUP, LINEAGE, ROADMAP, GAP_ANALYSIS, SESSION_HISTORY, HANDOFF, session-1-transcript |
+| Structural diagram | 2 | `bundle.dot` + `bundle.png` (source_hash tracks v0.4.0) |
 
 ---
 
-## How the bundle came to load + engage
+## Release history
 
-Four authoring/hardening rounds produced the current state.
+| Tag | Commit | Date | Scope |
+|---|---|---|---|
+| v0.2.0 | `fc8ba42` | Apr 22, 2026 | Initial public release (Rounds 1–4) |
+| (fix) | `e581cd2` | Apr 22, 2026 | v0.3 verification fixes for LaTeX compile + template download |
+| v0.4.0 | (this) | Apr 22, 2026 | v0.3 + v0.4 closeout: programmatic verification + simulated persona acceptance |
 
-### Round 1: Authoring (claude.ai + Cowork earlier sessions)
-128 files, ~59K lines. Content absorbed from `amplifier-bundle-scientificpaper`. See `docs/SESSION_HISTORY.md`.
+---
 
-### Round 2: Hardening (Amplifier local session — Apr 22, 2026)
-Based on authoritative guidance from `amplifier:amplifier-expert`:
-- `bundle.md` → valid YAML frontmatter
-- `behaviors/research.md` composite (DRY)
-- 4 scientificpaper-inherited behaviors cleaned
-- 3 stale awareness files rewritten
-- 5 missing templates written (white-paper, grant, replication skeletons; patent-prereg, policy-prereg YAMLs)
-- 10 agents got `meta:` frontmatter + `model_role` + common-agent-base footer
-- `bundles/dev.yaml` local-dev standalone
-- Non-standard bundle metadata absorbed into `context/instructions.md`
-- `bundle.dot` + `bundle.png` generated
-- Minor: SPEC version bump, INDEX.md path leftover
+## How the bundle came to load + engage + ship
 
-### Round 3: Post-review hardening (same session, after parallel expert review)
-Fixed 8 blockers surfaced by `amplifier-expert` + `foundation-expert` parallel reviews:
-- `honest-pivot.md` + `exploratory-labeling.md` got YAML frontmatter (were pure markdown)
-- `bundle.md` agent paths → short-name form (`research:hypothesis-designer`)
-- `bundles/dev.yaml` provider URL → namespace form (`foundation:providers/anthropic-claude`)
-- `recipes/paperbanana-figure.yaml` — 7 stale `scientificpaper:figure-artist` refs fixed
-- 4 domain behaviors — unique `bundle.name` to avoid collision with root
-- 16 `@scientificpaper:` refs across 9 context files — all fixed
-- `tool-paperbanana` — entry point + `mount()` + Tool protocol properties
-- 3 straggler old agent-name refs in prod files
+Six rounds produced v0.4.0.
 
-### Round 4: Modes engagement + v0.3 priorities (same day, after user request)
+### Round 1: Authoring
+Two earlier sessions (claude.ai + Cowork). 128 files, ~59K lines. Content absorbed from `amplifier-bundle-scientificpaper`. See `docs/SESSION_HISTORY.md`.
 
-**Mode registration — 6 modes now live as slash commands:**
+### Round 2: Hardening
+`amplifier-expert` guidance applied. `bundle.md` → valid frontmatter; behaviors composite created; 4 scientificpaper-inherited behaviors cleaned; 3 stale awareness files rewritten; 5 missing templates written; 10 agents got `meta:` frontmatter + `model_role` + common-agent-base footer; `bundles/dev.yaml` standalone; metadata absorbed into `context/instructions.md`; `bundle.dot` + `bundle.png` generated; SPEC version bumped.
 
-- All 6 `modes/*.md` files got YAML frontmatter with `mode:` block (name, description, per-mode tool policies, default_action: block)
-- Created `behaviors/research-modes.md` — the wiring: includes `modes:behaviors/modes.yaml`, mounts `hooks-mode` with `search_paths: ["@research:modes"]`, mounts `tool-mode` with `gate_policy: "warn"`, includes `modes:context/modes-instructions.md`
-- Added to `behaviors/research.md` composite (now 7 includes)
-- **Collision resolved:** `/plan` collided with `amplifier-bundle-modes`' default `/plan` (first-load wins). Renamed our mode to `name: study-plan` so all 6 register cleanly. Slash command is `/study-plan`; prose in bundle still refers to "the plan mode" as shorthand; research-coordinator routes natural-language "Run the plan mode" requests to `/study-plan`.
+### Round 3: Post-review blocker fixes
+8 items surfaced by parallel `amplifier-expert` + `foundation-expert` reviews. `honest-pivot.md` + `exploratory-labeling.md` got frontmatter; `bundle.md` agent paths → short-name form; `bundles/dev.yaml` provider URL → namespace form; recipes/paperbanana-figure.yaml 7 stale refs fixed; 4 domain behaviors got unique `bundle.name`; 16 `@scientificpaper:` refs across 9 context files fixed; `tool-paperbanana` protocol-compliant; 3 straggler old agent-name refs fixed.
 
-**v0.3 #1 — Reproducibility hardening:**
-7 new templates in `templates/`:
-- `environment.yml` (conda-lock pattern, 77 lines)
-- `requirements.in` + `requirements.txt` placeholder (pip-tools / uv pattern)
-- `Dockerfile.research` (minimal reproducibility container, 86 lines)
-- `REPRODUCIBILITY.md` (one-page guide, 61 lines)
-- `execution-log.yaml` (195 lines — structured schema for `/execute` logging)
-- `evidence-log.yaml` (200 lines — for patent-brief/policy-brief evidence-gather)
+### Round 4: Modes engagement + v0.3 priorities
+Mode registration wired per `amplifier-expert` guidance: 6 mode files got `mode:` frontmatter; `behaviors/research-modes.md` created with `hooks-mode` + `tool-mode`; `/plan` renamed to `/study-plan` (collision with `modes` bundle's `/plan`). v0.3 priority work: reproducibility hardening (7 templates), critique-as-publish-gate (8 recipes), non-academic publish paths (USPTO, policy-memo, NSF/NIH grant specs). Pre-push cleanup: PII sweep clean, README rewritten, `.gitignore` hardened. Published to GitHub as v0.2.0.
 
-Updated `modes/execute.md` with new "Reproducibility requirements" section covering: empirical recipes mandate `execution-log.yaml`, evidence-gather recipes mandate `evidence-log.yaml`, data-hash verification at `/execute` entry with `--allow-data-hash-mismatch` override, combined hash at exit as baseline for honest-pivot.
+### Round 5: v0.3 verification + bug fixes
+Five programmatic tests run:
 
-**v0.3 #2 — Critique-as-publish-gate:**
-All 8 mode-pipeline recipes got `publish_gates:` block with:
-- `critique_required: enforcement: block` (bypassable via `--no-critique-gate`, recorded in metadata)
-- `honest_pivot_acknowledged: enforcement: block` (not bypassable)
+| Test | Result |
+|---|---|
+| `tool-paperbanana.mount()` returns Tool-protocol-compliant tool | ✅ PASS (`name`, `description`, `input_schema`, `execute()` all verified) |
+| `scripts/compile_latex.py templates/imrad-skeleton.tex` | ❌→✅ `bug-hunter` fixed: `%TITLE%` placeholders were LaTeX comment-eaters; default format swapped to `arxiv`; `\bibliography` commented until user has `.bib`. Now produces 82KB PDF. |
+| `scripts/download_templates.py --all` | ⚠→✅ `bug-hunter` fixed: NeurIPS 403 (Cloudflare) downgraded to manual-download-required; ACM 403 swapped to CTAN mirror; `manual_fallback` field added per source. |
+| Bundle smoke test (`/question` + sharpened_question output) | ✅ PASS (97-line sharpened_question YAML with claim frame, predictions, disconfirmation, scope, 4-class novelty note) |
+| Bundle `/study-plan` smoke test (Persona A patent-brief) | ✅ PASS (57-line preregistration YAML with prior-art search plan, enablement demo, honest-pivot clause, abandonment criteria) |
 
-Grant-proposal has `honest_pivot_acknowledged: enabled: false` (no `/execute` phase). Updated `modes/publish.md` with "Publish gates" section. Fixed pre-existing YAML syntax bug in `patent-brief.yaml` (`>= 3` → `">= 3"`).
+Round 5 bug fixes committed and pushed as `e581cd2`.
 
-**v0.3 #5 — Non-academic publish paths:**
-3 new venue format specs in `context/venue-formats/`:
-- `uspto.md` (241 lines) — USPTO patent format: claim format, drawings rules, EFS-Web filing
-- `policy-memo.md` (276 lines) — policy brief format for government/NGO audiences
-- `nsf-grant.md` (325 lines) — NSF proposal format with NIH variant notes
+### Round 6: v0.4 simulated persona acceptance tests
 
-Updated `context/instructions.md` Recipes section and `agents/venue-formatter.md` capability list. Files contain `<!-- TBD: verify -->` markers where 2024/2025 rules may have drifted — flagged for domain-expert review.
+Three bounded simulations, each exercising one persona archetype end-to-end:
 
-**Authoritative guidance sources:**
-- `amplifier:amplifier-expert` — Round 2 + Round 3 + mode registration pattern (Round 4 kickoff)
-- `foundation:foundation-expert` — Round 3 parallel review
-- `bundle-to-dot` skill — DOT freshness model
-- `creating-amplifier-modules` skill — module protocol Iron Law
-- `superpowers-reference` skill — Superpowers mode patterns for reference
+**Persona A — Patent attorney (non-scientist):** `/question` + `/study-plan` on a rolling-ROI patent claim. Produced plain-language sharpened question + patent-schema preregistration with prior-art search plan (USPTO + Google Patents + arXiv with specific CPC classes), enablement demo (SWE-bench-lite baseline comparisons), honest-pivot clause (three narrowing branches), disconfirmation/abandonment criteria. Proactively flagged two clarifications before proceeding. **✅ PASS** — Persona A entry path usable.
+
+**Persona B — ML researcher (discipline terminology):** `/question` on a reflection-tokens empirical claim. Used correct statistical vocabulary throughout (pass@1, McNemar test, BH-FDR, TOST equivalence, mixed-effects logistic regression, KV-cache, stride ablation). Produced 50-line sharpened YAML with 3 operationalized predictions including item-level paired design, filler-matched baseline, horizon×condition interaction. 5-criterion disconfirmation with multiplicity control. Scope with explicit non-applicability to multi-pass/agentic/RAG settings. Novelty note distinguishing from Reflexion/Self-Refine at the token-schedule vs trajectory-control axis. Methodologist advisory folded 5 residual risks into the frame. Proactively asked about the fixed-interval trigger rule (token stride vs sentence boundary). **✅ PASS** — Persona B methodological rigor delivered.
+
+**Persona C — Peer reviewer (standalone /critique):** `/critique` on a deliberately-flawed reflection-tokens draft with overclaiming, missing methodology, no stats, and generic limitations. Produced critique YAML with severity-labeled findings, scholar-eval scores (methodology 1/5, evidence 1/5, clarity 2/5, novelty 2/5), REFORMS-ML checklist (8/8 MISSING), CONSORT-AI analog (outcome pre-specification + sample size + blinding all MISSING). Correctly identified PRISMA/STROBE as non-applicable and chose REFORMS as the right framework. 3 concrete remediation asks (effort + rationale). Summary verdict: WEAK. Correctly refused forward progress with 4 BLOCK items. **✅ PASS** — Persona C evaluator path usable.
+
+**All three personas delivered outputs genuinely useful to their target users.** The bundle's persona-aware behavior routed correctly without prompting; `honest-critic` and `preregistration-reviewer` activated appropriately; the mode contract held (no premature /execute; no auto-handoff without confirmation).
 
 ---
 
 ## Operating the bundle
 
-### Registration (one-time per machine)
+### Invoking recipes (natural language works best)
 
 ```bash
-cd /path/to/amplifier-bundle-research
-amplifier bundle add "file://$(pwd)" --name research-dev
-```
-
-To re-sync after local changes (from inside the repo):
-
-```bash
-amplifier bundle remove research-dev && amplifier bundle add "file://$(pwd)" --name research-dev
-```
-
-(The `amplifier bundle update` command doesn't work for `file://` sources — remove + add is the refresh idiom.)
-
-### Invoking recipes (three options)
-
-**Option A — natural language (works today, verified):**
-```bash
-amplifier run --bundle research-dev --mode chat \
+# The research-coordinator handles natural-language invocation:
+amplifier run --bundle research --mode chat \
   "Run the patent-brief recipe on: Novel rolling-ROI control for AI agent sessions"
-```
-The model resolves `@research:recipes/patent-brief.yaml`, calls `recipes` tool with `operation=execute`.
 
-**Option B — direct tool invocation:**
-```bash
-amplifier tool invoke recipes \
-  operation=execute \
+# Or direct recipe tool invocation:
+amplifier tool invoke recipes operation=execute \
   recipe_path=@research:recipes/patent-brief.yaml \
   'context={"invention": "Novel rolling-ROI control for AI agent sessions"}'
+
+# `--recipe <name>` flag does NOT exist in amplifier CLI. Use above forms.
 ```
 
-**Option C — `--recipe` flag: does NOT exist in amplifier CLI.** Earlier docs suggested this; it's not a real flag. Use A or B.
-
-### Using modes
-
-The 6 research modes register as slash commands in any session where `research-dev` is active:
+### The 6 slash commands
 
 - `/question` — sharpen a rough claim into a falsifiable research question
-- `/study-plan` — design methodology and hash-lock the pre-registration (formerly `/plan`; see "Known issues" below)
+- `/study-plan` — design methodology + hash-lock the pre-registration (renamed from `/plan` to avoid collision with `amplifier-bundle-modes` default)
 - `/execute` — run analysis / prior-art search / evidence gather per the locked plan
-- `/critique` — apply structured critique (CONSORT/STROBE/PRISMA or venue equivalent)
-- `/draft` — produce venue-appropriate document
-- `/publish` — format, compile, submission-ready-package
+- `/critique` — structured critique (CONSORT/STROBE/PRISMA/REFORMS as appropriate)
+- `/draft` — venue-appropriate document
+- `/publish` — format, compile, submission-ready-package (blocks until `/critique` passes and honest-pivots acknowledged)
 
-Type `/mode <name>` or use the `mode` tool from inside a session to activate. First activation attempt shows a warn gate (intentional — retry to confirm). Use `/mode off` to deactivate.
+First mode activation hits a warn gate (standard modes-bundle behavior) — retry to confirm. Use `/mode off` to deactivate.
 
-### Testing tool-paperbanana (figure generation)
+### tool-paperbanana (figure generation)
 
+Install once:
 ```bash
-# Module is pip-installed. Exercise it via a recipe:
-export GOOGLE_API_KEY="your-imagen-4-key"
-amplifier run --bundle research-dev --mode chat \
-  "Use the paperbanana-figure recipe to generate a methodology figure for a transformer architecture paper targeting NeurIPS."
+cd modules/tool-paperbanana && pip install -e .
 ```
 
-Cost: ~$0.04/image (Imagen 4 pricing). Module has a placeholder-executes-fallback path if Imagen is unavailable.
+Requires `GOOGLE_API_KEY` with Imagen 4 access (~$0.04/image). Protocol-compliant; `mount()` verified; execute path uses the 5-stage PaperBanana pipeline (arXiv 2601.23265).
+
+### Scripts
+
+```bash
+# Compile a LaTeX paper (defaults to arxiv; pass --format neurips / icml / acl / ieee / acm)
+python scripts/compile_latex.py templates/imrad-skeleton.tex
+
+# Download conference templates (ACL, IEEE, ACM via CTAN work automatically;
+# NeurIPS and ICML print manual-download instructions)
+python scripts/download_templates.py --all
+
+# Validate a .tex against a venue before submission
+python scripts/validate_format.py your-paper.tex --format neurips --strict
+
+# Generate a publication-ready figure (matplotlib-based; not the paperbanana pipeline)
+python scripts/generate_figure.py training
+```
 
 ---
 
-## What's NOT done (v0.4 and beyond)
+## What's NOT done
 
-### v0.4 — User testing (three personas)
+### Post-v0.4 — Real-user validation
 
-1. **Persona A test.** Non-scientist user (patent attorney, policy analyst, or founder) runs `patent-brief` or `policy-brief` recipe. Does the plain-English framing work? Is the mode vocabulary intuitive? Is `/study-plan` confusing to type instead of `/plan`?
-2. **Persona B test.** Working researcher runs `empirical-paper` or `benchmark-paper` recipe. Does the pre-registration workflow add value or friction? Does `honest-pivot` fire appropriately?
-3. **Persona C test.** Reviewer invokes `/critique` standalone on an existing document. Is the output actionable?
+The v0.4 persona tests were SIMULATED (one Amplifier session exercising each persona archetype with realistic inputs). They proved the bundle produces persona-appropriate outputs with correct structure. They did NOT prove:
 
-### v1.0 — Public release
+- Whether a real patent attorney finds the `/study-plan` preregistration workflow intuitive or friction-heavy
+- Whether a real working researcher would choose this bundle over writing a preregistration manually
+- Whether a real peer reviewer's critique session converges faster/better with `/critique` vs without
 
-4. **Dogfood paper.** First artifact this bundle produces should be the paper *about* this bundle, measured on the RCE benchmark. See `docs/ROADMAP.md`.
-5. **GitHub push.** `git init && git add . && git commit -m "v0.2.0" && gh repo create michaeljabbour/amplifier-bundle-research --public --source=. --push`. After push, update `behaviors/paperbanana.md`'s `source:` URI from `../modules/tool-paperbanana` (local-dev form) to the git URL form.
+These are empirical questions that require real humans with real work. Scheduled as:
 
-### Post-v1.0
+1. **Persona A real-user test** — patent attorney + real invention. Measure: minutes-to-useful-sharpened-question, attorney's confidence rating of the output, whether the preregistration becomes the prior-art search plan or gets discarded.
+2. **Persona B real-user test** — working ML researcher + real paper draft. Measure: does the preregistration survive peer review, does `honest-pivot` fire and get acknowledged, does the final paper compile correctly.
+3. **Persona C real-user test** — peer reviewer + real submitted paper. Measure: does `/critique` output match what the human reviewer would have written; does applying REFORMS-ML/CONSORT-AI surface gaps the human missed.
 
-6. **Domain packs.** Medical (IRB, CONSORT), legal (patent prosecution), social science (STROBE, survey design).
-7. **Multi-author support.** CRediT taxonomy, co-author review loops.
-8. **Review-round support.** R&R response drafting with equal rigor to the original paper.
-9. **Reference-manager MCP.** Zotero / Mendeley connector.
+### v1.0 — Dogfood paper + GitHub release tagging
+
+- **Dogfood paper.** The first artifact this bundle produces should be the paper *about* this bundle, measured on the RCE benchmark. See `docs/ROADMAP.md`.
+- **GitHub release.** Tag `v0.4.0` on the current commit. Tag `v1.0.0` after the dogfood paper is published.
+
+### Post-v1.0 roadmap
+
+1. **Domain packs.** Medical (IRB, CONSORT), legal (patent prosecution detail), social science (STROBE, survey design).
+2. **Multi-author support.** CRediT taxonomy, co-author review loops.
+3. **Review-round support.** R&R response drafting with equal rigor to the original paper.
+4. **Reference-manager MCP.** Zotero / Mendeley connector.
 
 ### Verification asks (non-blocking)
 
 - **USPTO / NSF / NIH rules** in `context/venue-formats/*.md` have `<!-- TBD: verify -->` markers where 2024/2025 rules may have drifted. A reviewer with current MPEP / PAPPG access should walk the three files.
-- **Execution log combined-hash format** (in `modes/execute.md`): defined as `sha256(execution_log_sha256 || preregistration_sha256)`. Alternative Merkle-style / JSON-manifest-digest schemes exist. Align with whatever convention the dogfood paper adopts.
-- **Override flag names** coined during v0.3 (`--allow-data-hash-mismatch`, `--allow-prereg-hash-mismatch`, `--allow-search-plan-hash-mismatch`): if a canonical CLI flag convention exists elsewhere in the bundle, these should match it.
+- **Execution log combined-hash format** in `modes/execute.md` is defined as `sha256(execution_log_sha256 || preregistration_sha256)`. Confirm once dogfood paper commits to a specific convention.
+- **Override flag names** (`--allow-data-hash-mismatch` etc.) coined during Round 4. Align with whatever Amplifier adopts canonically.
+- **NeurIPS style-file URL rot** — `neurips.cc/Conferences/2024/PaperInformation/StyleFiles` 404s. Overleaf template URL is the more durable reference in the manual-download instructions.
 
 ---
 
-## Known issues
+## Known constraints (live, not bugs)
 
-### /plan collision — live constraint, not a bug
+### /study-plan slash command (not /plan)
 
-The research bundle's plan mode is registered as `/study-plan` (not `/plan`) to avoid collision with the default `/plan` mode shipped by `amplifier-bundle-modes` ("Analyze, strategize, and organize - but don't implement").
+The research bundle's plan mode registers as `/study-plan` — not `/plan` — to avoid collision with the default `/plan` mode shipped by `amplifier-bundle-modes`. Per `hooks-mode`'s first-load-wins rule, the modes bundle wins. `research-coordinator` routes natural-language "plan" requests to `/study-plan` regardless. Prose throughout the bundle uses "the plan mode" as shorthand.
 
-Per foundation's `hooks-mode` contract: on shortcut collision, first-load wins silently; the second registration is dropped with an INFO log. Since the modes bundle loads its defaults before our research-modes behavior, their `/plan` wins.
+### Composition with other bundles
 
-**Consumer impact:**
-- Users must type `/study-plan` (not `/plan`) to activate the research plan mode
-- The research-coordinator agent routes natural-language invocations (e.g., "Run the plan mode", "Let's plan the study") to `/study-plan` regardless of phrasing
-- Prose throughout the bundle often refers to "/plan" conceptually — that's the pipeline role, not the slash command
+If a consumer loads `research` alongside another bundle that also mounts `hooks-mode` with its own `search_paths` (e.g., `amplifier-bundle-superpowers`), the deep-merge implementation replaces lists rather than concatenating. One bundle's modes will win, the other's will be silently dropped. Fix pattern: a wrapper bundle that declares `hooks-mode` once with all desired search_paths together. See parallax-discovery for the canonical example.
 
-**If both research and superpowers bundles are loaded together:** the same collision issue affects other modes if names overlap. Per the foundation-expert's Round 4 guidance, a wrapper bundle that declares `hooks-mode` once with all desired search_paths is the canonical fix.
+### Architectural debt (deferred, non-blocking)
 
-### Architectural debt (non-blocking, deferred past v1.0)
-
-- **Thin-bundle partial violation.** `bundle.md` declares all 10 agents directly; canonical pattern (per `amplifier-bundle-recipes`) declares agents only in behaviors. Three agents (figure-designer, venue-formatter, technical-writer) are declared in both root and behaviors — runtime deduplication handles it, but it's maintenance debt.
-- **Duplicate agent declarations.** figure-designer / venue-formatter / technical-writer each appear 3× (root + 2 behaviors). Same issue.
+- **Thin-bundle partial violation.** `bundle.md` declares all 10 agents directly; canonical pattern is behavior-only. 3 agents declared 3× (root + 2 behaviors).
 - **`tool-paperbanana` pyproject.toml name** doesn't follow `amplifier-module-tool-*` convention. Cosmetic; entry point is correct.
+- **Mode `plan.md` file is named `plan.md` on disk** but registers as `study-plan`. A cosmetic rename (`plan.md` → `study-plan.md`) would align filename with registered name. Deferred as non-urgent.
 
 ---
 
 ## How to pick this up
 
-### If you're MJ working locally:
+### If you're MJ continuing locally:
 
 ```bash
-cd ~/dev/amplifier-bundle-research
+cd /path/to/amplifier-bundle-research
 
-# Smoke test (should print READY):
-amplifier run --bundle research-dev --mode single "Reply with exactly: READY"
+# Smoke test after a fresh clone:
+amplifier bundle remove research 2>/dev/null
+amplifier bundle add "file://$(pwd)" --name research-dev
+amplifier run --bundle research-dev --mode single "Call mode tool operation=list and filter to source=research"
+# → should show: critique, draft, execute, publish, question, study-plan
 
-# List registered modes:
-amplifier run --bundle research-dev --mode single \
-  "Call the mode tool with operation=list and filter to source=research"
-
-# First functional recipe test (natural language):
-amplifier run --bundle research-dev --mode chat \
-  "Run the patent-brief recipe on: Novel rolling-ROI control for AI agent sessions"
+# Or use the public version:
+amplifier bundle add "git+https://github.com/michaeljabbour/amplifier-bundle-research@main" --name research
 ```
+
+### If you're reviewing for a PR or forking:
+
+Read in order:
+1. `README.md` — install + modes + recipes
+2. `docs/HANDOFF.md` — this file
+3. `docs/SPEC.md` — authoritative spec
+4. `bundle.md` — valid frontmatter, short-name agent refs, research-modes transitively wired
+5. `docs/ROADMAP.md` — post-v0.4 plan
 
 ### If you're a Claude Code / Cowork / subagent session:
 
-Read these files in order:
-1. `docs/SESSION_HISTORY.md` — how the bundle came to exist (four rounds before this handoff)
-2. `docs/HANDOFF.md` — this file
-3. `docs/SPEC.md` — the authoritative spec (v0.2.0)
-4. `bundle.md` — valid frontmatter; short-name agent refs; research-modes behavior transitively wired
-5. `docs/ROADMAP.md` — v0.4 user testing, v1.0 dogfood paper, post-v1.0 domain packs
-
-### If you're reviewing for a PR:
-
-Design influences: `docs/LINEAGE.md`. Persona architecture: `docs/PERSONAS.md`. UX contract with full CLI transcripts: `docs/UX_MOCKUP.md`. Round 2+3+4 fix rationale: this file, §"How the bundle came to load + engage".
+The bundle is v0.4.0 and structurally stable. All architectural debt is documented. New work should focus on real-user validation (post-v0.4) or v1.0 dogfood paper. See `docs/ROADMAP.md`.
 
 ---
 

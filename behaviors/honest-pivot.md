@@ -1,7 +1,7 @@
 ---
 bundle:
   name: research-honest-pivot
-  version: 0.2.0
+  version: 0.4.0
   description: |
     Surfaces any divergence between the hash-locked pre-registration and the
     user's analysis, findings, or draft. Fires at every mode boundary after

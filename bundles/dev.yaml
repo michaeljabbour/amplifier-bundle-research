@@ -1,7 +1,7 @@
 ---
 bundle:
   name: research-dev
-  version: 0.2.0
+  version: 0.4.0
   description: |
     Local-development standalone for amplifier-bundle-research. Composes the
     root research bundle with an Anthropic provider so the bundle can be
