@@ -1,4 +1,13 @@
-# Phrases to Remove
+# Phrases to Remove (stop-slop behavior rule catalog)
+
+This file is consulted by the `stop-slop` behavior during `/draft` and
+`/critique`. It is not loaded into any agent's permanent context.
+Agents open it on demand when the behavior fires.
+
+Adapted from [hardikpandya/stop-slop](https://github.com/hardikpandya/stop-slop)
+(MIT).
+
+---
 
 ## Throat-Clearing Openers
 

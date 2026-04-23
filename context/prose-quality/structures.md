@@ -1,4 +1,13 @@
-# Structures to Avoid
+# Structures to Avoid (stop-slop behavior rule catalog)
+
+This file is consulted by the `stop-slop` behavior during `/draft` and
+`/critique`. It is not loaded into any agent's permanent context.
+Agents open it on demand when the behavior fires.
+
+Adapted from [hardikpandya/stop-slop](https://github.com/hardikpandya/stop-slop)
+(MIT).
+
+---
 
 ## Binary Contrasts
 
@@ -78,6 +87,8 @@ Giving inanimate things human verbs. Complaints don't "become" fixes. Bets don't
 | "the market rewards" | Markets don't reward. Buyers pay for things. |
 
 **Instead:** Name the human. "The team fixed it that week" beats "the complaint becomes a fix." If no specific person fits, use "you" to put the reader in the seat.
+
+**Limitations-section rule:** false agency in a limitations section is the single BLOCK-severity pattern this behavior enforces. Limitations must name the human holding the bag.
 
 ## Narrator-from-a-Distance
 

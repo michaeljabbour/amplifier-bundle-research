@@ -12,6 +12,7 @@ bundle:
 includes:
   - bundle: research:behaviors/honest-pivot.md
   - bundle: research:behaviors/exploratory-labeling.md
+  - bundle: research:behaviors/stop-slop.md
   - bundle: research:behaviors/paperbanana.md
   - bundle: research:behaviors/figure-generation.md
   - bundle: research:behaviors/latex-authoring.md
@@ -23,7 +24,7 @@ includes:
 
 This is the canonical entry point for consuming research-bundle behaviors
 from any other bundle. Including `research:behaviors/research.md` transitively
-pulls in all seven behaviors with their default configurations.
+pulls in all eight behaviors with their default configurations.
 
 ## What's included
 
@@ -31,6 +32,7 @@ pulls in all seven behaviors with their default configurations.
 |----------|---------|---------|
 | `honest-pivot` | on | Surfaces any deviation between pre-registered plan and final output |
 | `exploratory-labeling` | on | Tags unpredicted findings as `[EXPLORATORY]` through to publish |
+| `stop-slop` | on | Silent prose-discipline: removes AI-tell patterns (adverb piles, binary contrasts, em-dashes, false agency, throat-clearing openers) during /draft and /critique |
 | `paperbanana` | on | PaperBanana multi-agent figure generation (8 quality veto rules) |
 | `figure-generation` | on | Tool selection matrix for figures (matplotlib, TikZ, Mermaid, Imagen) |
 | `latex-authoring` | on | LaTeX compilation, conference formatting, structural planning |

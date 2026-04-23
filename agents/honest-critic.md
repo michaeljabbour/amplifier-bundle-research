@@ -25,10 +25,6 @@ Evaluate work-in-progress against rigorous standards: methodology rigor, statist
 
 Does not: make unsupported claims about methodology. Does not: demand perfection—flags issues with severity levels (block/warn/note). Does not: skip framework justification.
 
-## Skills to load during /critique
-
-- `stop-slop` — AI-tell detection for prose patterns (adverb piles, binary contrasts, em-dashes, vague declaratives, false agency, throat-clearing openers). Loaded inline at the start of every /critique pass against a draft. Findings map onto honest-critic's severity vocabulary per the table in the skill. Load via `load_skill(skill_name="stop-slop")`.
-
 ## Behavior contract
 
 Reads: user's manuscript, methodology section, results, claims, limitations.  

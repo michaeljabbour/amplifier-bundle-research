@@ -29,7 +29,7 @@ written with this bundle."*
 | `/study-plan` | [`02-study-plan.yaml`](02-study-plan.yaml) | methodologist, preregistration-reviewer, statistician | Hash-locked the evidence plan, competitive-comparator rules, baselines, draft constraints, abandonment criteria, honest-pivot clause. |
 | `/execute` | [`03-execute-evidence-log.yaml`](03-execute-evidence-log.yaml) | research-coordinator, statistician | Gathered four evidence classes (discipline gap, competitive, case studies, risks) and bundle-internal facts. Logged one honest-pivot softening P4 from comparative to operational claim. |
 | `/critique` (pass 1) | [`04-critique.yaml`](04-critique.yaml) | honest-critic | Produced 14 findings: **4 BLOCK**, **6 WARN**, **4 NOTE**, plus 4 named alternative explanations. Verdict: `CONDITIONAL_PROCEED`. |
-| `/critique` (pass 2, stop-slop) | [`04b-critique-v2-stop-slop.yaml`](04b-critique-v2-stop-slop.yaml) | honest-critic + [`stop-slop` skill](../../.amplifier/skills/stop-slop/SKILL.md) | Grep-swept the LaTeX draft for AI-tell patterns. Zero rendering em-dashes, zero adverb crutches, zero throat-clearing openers, zero binary contrasts, zero vague declaratives. Three NOTE-severity items logged (three-item list density, calibrated use of "significant", rhythm in exec summary). |
+| `/critique` (pass 2, stop-slop) | [`04b-critique-v2-stop-slop.yaml`](04b-critique-v2-stop-slop.yaml) | honest-critic + [`stop-slop` behavior](../../behaviors/stop-slop.md) | Grep-swept the LaTeX draft for AI-tell patterns. Zero rendering em-dashes, zero adverb crutches, zero throat-clearing openers, zero binary contrasts, zero vague declaratives. Three NOTE-severity items logged (three-item list density, calibrated use of "significant", rhythm in exec summary). (The artifact YAML references the skill form that was later migrated to a behavior; see capability-migration note below.) |
 | `/draft` | [`05-draft.tex`](05-draft.tex) and [`05-draft.md`](05-draft.md) | technical-writer, figure-designer, citation-manager | LaTeX `article`-class draft honoring every BLOCK resolution: first-person capability disclosure in front matter, no comparative-time claims, L1 "no real-attorney validation" as headline limitation, mechanism-specific language replacing "same as scientists" framing, four named alternative explanations. |
 | `/publish` | [`06-whitepaper-v2.pdf`](06-whitepaper-v2.pdf) | venue-formatter | Two-pass `pdflatex` compile. All publish gates pass (critique_required PASS, honest_pivot_acknowledged PASS, thesis_clarity PASS, overclaim_detection PASS, competitive_analysis PASS; evidence_coverage WARN carried as exploratory label). |
 
@@ -47,9 +47,11 @@ written with this bundle."*
 
 ### Capabilities added during this run
 
-- **`stop-slop` skill** (gene transfer from [`hardikpandya/stop-slop`](https://github.com/hardikpandya/stop-slop), MIT-licensed, adapted to Amplifier form at [`.amplifier/skills/stop-slop/`](../../.amplifier/skills/stop-slop/SKILL.md)). Integrated into the [`honest-critic`](../../agents/honest-critic.md) agent so every future `/critique` pass loads it inline.
+- **`stop-slop` behavior** (gene transfer from [`hardikpandya/stop-slop`](https://github.com/hardikpandya/stop-slop), MIT-licensed). Lives at [`behaviors/stop-slop.md`](../../behaviors/stop-slop.md); default-on; never user-invocable. Fires silently during `/draft` and `/critique` to remove AI-tell patterns. The rule catalog lives at [`context/prose-quality/`](../../context/prose-quality/) and is loaded on demand when the behavior triggers.
 - **Four DOT diagrams** authored for this paper and compiled to both PDF (embedded in LaTeX) and PNG (for web/readme previews). See [`figures/`](figures/).
-- **[`research-bundle-examples.md`](../../.amplifier/skills/stop-slop/references/research-bundle-examples.md)** — a new stop-slop reference file containing seven before/after rewrites drawn from this paper's own drafts. Future `/critique` passes can use them as ground-truth examples of what the bundle's prose sounds like in AI-tell-clean form.
+- **Seven research-bundle-specific before/after rewrites** in [`context/prose-quality/examples.md`](../../context/prose-quality/examples.md), drawn from this paper's own drafts. Future `/critique` passes use them as ground-truth examples of what the bundle's prose sounds like in AI-tell-clean form.
+
+> **Note on the skill→behavior migration.** The initial gene transfer landed stop-slop as a user-invocable skill at `.amplifier/skills/stop-slop/` (visible in commit `e07f3b2`). A subsequent design pass moved it to the behavior form above. The v2 LaTeX draft preserved in this sample was produced before that migration; the session artifact `04b-critique-v2-stop-slop.yaml` still references the skill form. Everything the draft shows the bundle doing is now done automatically by the behavior without the agent needing to `load_skill` anything.
 
 ## Diagrams
 
@@ -128,5 +130,5 @@ examples/whitepaper-dogfood-run/
 
 - Bundle topology at the repo scale: [`bundle.dot`](../../bundle.dot) / [`bundle.png`](../../bundle.png) (auto-generated; covers the whole bundle, not just this recipe).
 - The v1.0 dogfood paper plan: [`docs/HANDOFF.md`](../../docs/HANDOFF.md).
-- The `stop-slop` skill this run ported: [`.amplifier/skills/stop-slop/`](../../.amplifier/skills/stop-slop/SKILL.md).
+- The `stop-slop` behavior this run introduced: [`behaviors/stop-slop.md`](../../behaviors/stop-slop.md) (current form) / rule catalogs at [`context/prose-quality/`](../../context/prose-quality/).
 - Skill provenance: [hardikpandya/stop-slop](https://github.com/hardikpandya/stop-slop) (MIT, adapted).
