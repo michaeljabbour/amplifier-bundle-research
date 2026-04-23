@@ -352,8 +352,8 @@ def main():
         "-f",
         "--format",
         choices=["neurips", "icml", "acl", "ieee", "acm", "arxiv"],
-        default="neurips",
-        help="Conference format (default: neurips)",
+        default="arxiv",
+        help="Conference format (default: arxiv)",
     )
     parser.add_argument(
         "-o",

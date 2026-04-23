@@ -35,10 +35,17 @@ class TemplateDownloader:
     # Download sources with expected file sizes (bytes) for verification
     SOURCES = {
         "neurips": {
-            "url": "https://media.neurips.cc/Conferences/NeurIPS2024/Styles/neurips_2024.zip",
-            "type": "zip",
-            "min_size": 10_000,  # At least 10KB
-            "description": "NeurIPS 2024 LaTeX style files",
+            "url": None,
+            "type": "manual",
+            "description": "NeurIPS LaTeX style files (manual download required)",
+            "instructions": """
+NeurIPS templates require manual download (neurips.cc blocks automated requests):
+1. Visit: https://neurips.cc/Conferences/2024/PaperInformation/StyleFiles
+   or open the Overleaf template: https://www.overleaf.com/latex/templates/neurips-2024
+2. Download the LaTeX style package (neurips_2024.zip)
+3. Extract to: templates/neurips/
+4. Ensure neurips_2024.sty is present
+""",
         },
         "acl": {
             "url": "https://github.com/acl-org/acl-style-files.git",
@@ -50,12 +57,15 @@ class TemplateDownloader:
             "type": "zip",
             "min_size": 50_000,  # At least 50KB
             "description": "IEEE LaTeX style files (IEEEtran class)",
+            "manual_fallback": "Visit https://ctan.org/pkg/ieeetran to download manually and extract to templates/ieee/",
         },
         "acm": {
-            "url": "https://www.acm.org/binaries/content/assets/publications/consolidated-tex-template/acmart-primary.zip",
+            # CTAN mirror — the old acm.org direct link 403s; CTAN is the canonical distribution.
+            "url": "https://mirrors.ctan.org/macros/latex/contrib/acmart.zip",
             "type": "zip",
             "min_size": 100_000,  # At least 100KB
-            "description": "ACM LaTeX style files (acmart class)",
+            "description": "ACM LaTeX style files (acmart class, via CTAN)",
+            "manual_fallback": "Visit https://ctan.org/pkg/acmart to download manually and extract to templates/acm/",
         },
         "icml": {
             "url": None,
@@ -296,6 +306,8 @@ ICML templates require manual download:
             # Download ZIP file
             temp_zip = self.templates_dir / f"{conference}_temp.zip"
             if not self._download_file(source["url"], temp_zip, source.get("min_size")):
+                if "manual_fallback" in source:
+                    print(f"\n💡 Manual fallback: {source['manual_fallback']}")
                 return False
 
             # Extract
