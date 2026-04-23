@@ -51,9 +51,8 @@ agents:
 #   and implausible statistics. Run before trusting any experiment's numbers.
 # --------------------------------------------------------------------------
 tools:
-  include:
-    - path: modules/tool-experiment-audit
-      mount: amplifier_research_audit:mount
+  - path: modules/tool-experiment-audit
+    mount: amplifier_research_audit:mount
 ---
 
 # Research Bundle
