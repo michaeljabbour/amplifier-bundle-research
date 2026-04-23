@@ -1,0 +1,128 @@
+name: patent-brief
+version: 0.1.0
+description: |
+  USPTO-style invention disclosure with prior-art section and claim chart.
+  Designed for patent attorneys, technical founders, and inventors producing
+  a defensible brief for a filing attorney's review.
+
+# ---------------------------------------------------------------------------
+# Mode sequence — full six-mode pipeline
+# ---------------------------------------------------------------------------
+modes:
+  - id: question
+    purpose: Sharpen invention into defensible claims
+    persona_hint: |
+      Expect Persona A (patent attorney or inventor). Default to
+      jargon-free phrasing. Ask about novelty, non-obviousness, and
+      utility without using those exact terms.
+  - id: plan
+    purpose: Lock the approach — prior-art strategy, claim structure, enablement plan
+  - id: execute
+    purpose: Prior-art search + claim chart + enablement demo
+    tools:
+      - prior-art-search:
+          sources: [uspto, google-patents, arxiv, ieee-xplore]
+          depth: 2
+          snowball: true
+      - claim-chart-builder:
+          template: templates/claim-chart.xlsx
+      - enablement-demo:
+          required_if: user_has_prototype
+          output: output/enablement-demo/
+  - id: critique
+    purpose: Novelty + enablement stress tests
+    emphasis:
+      - novelty  # stress-test claims against found prior art
+      - enablement  # could a PHOSITA build it from the description?
+      - overclaim-detection  # flag "substantially", "dramatically" etc.
+      - claim-scope  # too broad = invalidity risk; too narrow = thin protection
+  - id: draft
+    purpose: USPTO-style structured brief
+    template: templates/patent-brief-skeleton.md
+    sections:
+      - field-of-invention
+      - background
+      - summary-of-invention
+      - detailed-description
+      - claims
+      - abstract
+      - drawings
+  - id: publish
+    purpose: Filing-ready output
+    venue: uspto
+    output_formats: [docx, pdf]
+    artifacts:
+      - patent-brief.docx
+      - patent-brief.pdf
+      - claim-chart.xlsx
+      - prior-art-table.xlsx
+      - drawings/
+      - preregistration.yaml  # the hash-locked /plan artifact
+
+# ---------------------------------------------------------------------------
+# Defaults — overridable by user
+# ---------------------------------------------------------------------------
+defaults:
+  honest_pivot: true
+  exploratory_labeling: true
+  preregistration_required: true
+  citation_style: uspto
+  figure_style: patent-drawing  # black-and-white, numbered parts
+
+# ---------------------------------------------------------------------------
+# Publish gates — enforced at /publish entry. Session refuses to run /publish
+# until these conditions are satisfied.
+# ---------------------------------------------------------------------------
+publish_gates:
+  # -- v0.3 workflow gates ---------------------------------------------------
+  critique_required:
+    enabled: true
+    description: |
+      /publish refuses to execute until at least one /critique pass has produced
+      a critique_report artifact for the current draft. This prevents publishing
+      work that has not been subjected to structured self-review.
+    enforcement: block
+    bypass: "--no-critique-gate"
+    bypass_warning: |
+      Publishing without a critique pass. The output's metadata will record
+      that critique was bypassed. This is appropriate for informal drafts and
+      internal-use documents, but not recommended for external publication.
+    artifact_required: critique.yaml  # produced by /critique mode; lives in .amplifier/sessions/<session>/
+
+  honest_pivot_acknowledged:
+    enabled: true  # applies if the pre-registered prior-art or evidence search
+                   # produces results that differ from expectations
+    description: |
+      If /execute produced findings that diverge from the pre-registration,
+      /publish requires the user has acknowledged each divergence via the
+      honest-pivot behavior (either labeled exploratory, amended with
+      timestamp, or disabled with --no-honest-pivot flag).
+    enforcement: block
+    bypass: null  # Cannot be bypassed — architectural guarantee
+
+  # -- Domain-specific quality gates ----------------------------------------
+  quality_gates:
+    - name: novelty
+      condition: no overclaim flags on independent claims
+      on_fail: block
+    - name: enablement
+      condition: scholar-eval enablement score >= 3.5 / 5
+      on_fail: warn
+    - name: prior_art_coverage
+      condition: ">= 3 prior-art references per independent claim"
+      on_fail: warn
+
+# ---------------------------------------------------------------------------
+# Persona detection hints
+# ---------------------------------------------------------------------------
+persona_signals:
+  # How the bundle guesses whether the user is A, B, or C
+  persona_a_indicators:
+    - user asked to "draft a patent" (outcome-focused)
+    - user described invention in prose without technical schemas
+    - user does not reference pre-registration, CI, or experimental design
+  persona_b_indicators:
+    - user references pre-registration, FDR, MDE, power
+    - user provides structured specification at /question
+  persona_c_indicators:
+    - user invokes /critique standalone with an incoming document

@@ -1,0 +1,113 @@
+# ==========================================================================
+# PRE-REGISTRATION TEMPLATE
+# ==========================================================================
+# Written by /plan. Hash-locked with SHA256 on exit from /plan.
+# Any change after hash-lock requires a timestamped amendment (not a rewrite)
+# and fires the honest-pivot behavior.
+#
+# This template is used by all empirical recipes (empirical-paper,
+# replication-study) and by any other recipe where defensibility requires
+# lock-before-data. Patent-brief and policy-brief use adapted versions
+# (templates/patent-prereg.yaml, templates/policy-prereg.yaml).
+# ==========================================================================
+
+metadata:
+  created_at: <ISO-8601 timestamp>
+  created_by: <user identifier>
+  recipe: <recipe name>
+  bundle_version: 0.1.0
+  session_id: <amplifier session id>
+
+# --------------------------------------------------------------------------
+# The sharpened question, carried forward from /question
+# --------------------------------------------------------------------------
+question:
+  one_line: <the question in a single sentence>
+  scope:
+    applies_to: <domain / population / conditions>
+    does_not_apply_to: <explicit out-of-scope>
+
+# --------------------------------------------------------------------------
+# Confirmatory predictions — what we commit to in advance
+# --------------------------------------------------------------------------
+predictions:
+  - id: P1
+    statement: <specific, measurable prediction>
+    mechanism: <why we expect this>
+    directional: <true | false>   # one-sided vs. two-sided test
+    measurable_via:
+      outcome_variable: <what we measure>
+      unit_of_analysis: <paired items | subjects | sessions | etc.>
+      summary_statistic: <mean | median | rate | etc.>
+    threshold_of_interest:
+      minimum_detectable_effect: <MDE>
+      effect_size_units: <pp | std devs | raw units>
+
+# --------------------------------------------------------------------------
+# Analysis plan — locked before data are seen
+# --------------------------------------------------------------------------
+analysis_plan:
+  primary_test:
+    test: <e.g., paired McNemar | paired t-test | bootstrap CI>
+    alpha: 0.05
+    correction: benjamini-hochberg   # for multiple predictions
+    power:
+      target: 0.8
+      n_required: <from power analysis>
+  secondary_analyses:
+    - <any pre-registered secondary analyses>
+  exploratory_zone:
+    - <sub-analyses explicitly labeled exploratory in advance>
+    # Anything in the exploratory zone gets the exploratory tag
+    # throughout the pipeline. Anything outside it that comes up
+    # later also gets the exploratory tag (via the behavior).
+
+# --------------------------------------------------------------------------
+# Disconfirmation — what would falsify
+# --------------------------------------------------------------------------
+disconfirmation:
+  - <observation that would refute P1>
+  - <observation that would refute P2>
+
+# --------------------------------------------------------------------------
+# Methodology detail
+# --------------------------------------------------------------------------
+methodology:
+  data_source:
+    description: <what data, from where>
+    access: <public | internal | third-party with access agreement>
+    version_or_hash: <SHA256 of the dataset if available>
+  sample:
+    inclusion_criteria: [<criterion 1>, <criterion 2>]
+    exclusion_criteria: [<criterion 1>, <criterion 2>]
+    sample_size_justification: <power analysis | resource constraint | etc.>
+  procedure:
+    seed: 42
+    deterministic: true
+    reproducibility_checks: [<check 1>, <check 2>]
+  potential_biases:
+    - bias: <e.g., selection bias>
+      mitigation: <how we handle it>
+      residual_risk: <what we can't fully mitigate>
+
+# --------------------------------------------------------------------------
+# Honest-pivot clause — the explicit commitment
+# --------------------------------------------------------------------------
+honest_pivot_clause: |
+  If the results do not support the predictions above, we will:
+  1. Report the null or contrary finding clearly, in the Results section.
+  2. Not rewrite predictions post-hoc to match observed findings.
+  3. If a legitimate methodological correction is needed, amend this
+     document with a timestamped note rather than editing in place.
+  4. Label any finding not predicted here as exploratory in the final
+     write-up.
+
+# --------------------------------------------------------------------------
+# Amendment log — timestamped additions only, never deletions
+# --------------------------------------------------------------------------
+amendments: []   # appended to via /plan --amend, never edited in place
+
+# --------------------------------------------------------------------------
+# Self-witnessing hash — populated by /plan on exit
+# --------------------------------------------------------------------------
+sha256: <computed at hash-lock time, before /execute begins>

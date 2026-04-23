@@ -1,0 +1,134 @@
+# ==========================================================================
+# POLICY PRE-REGISTRATION TEMPLATE
+# ==========================================================================
+# Specialization of templates/preregistration.yaml for the policy-brief
+# recipe. Policy work without pre-registration is prone to motivated
+# searching — finding the evidence that fits a predetermined recommendation.
+# Locking the search plan and the disconfirming-evidence criteria before
+# the search begins makes motivated searching visible as an amendment.
+#
+# Diff from the base template:
+#   - predictions     -> evidence_predictions
+#   - analysis_plan   -> search_plan
+#   - added           -> disconfirming_evidence_discipline
+#   - added           -> stakeholders_to_research
+# Retained unchanged:
+#   - metadata, question, scope, honest_pivot_clause, amendments, sha256
+# ==========================================================================
+
+metadata:
+  created_at: <ISO-8601 timestamp>
+  created_by: <author / commissioning body / agent identifier>
+  recipe: policy-brief
+  bundle_version: 0.1.0
+  session_id: <amplifier session id>
+
+# --------------------------------------------------------------------------
+# The sharpened question, carried forward from /question
+# --------------------------------------------------------------------------
+question:
+  one_line: <the policy question in a single sentence>
+  scope:
+    applies_to: <jurisdiction | population | policy domain | time horizon>
+    does_not_apply_to: <explicitly out-of-scope settings>
+
+# --------------------------------------------------------------------------
+# Evidence predictions — what the systematic search is expected to find
+# --------------------------------------------------------------------------
+evidence_predictions:
+  - id: E1
+    statement: <the evidence we expect to find on the primary question>
+    expected_quality: <High | Moderate | Low | Very Low>  # GRADE-style
+    recommendation_contingent_on: <what the evidence must show to support rec>
+  - id: E2
+    statement: <evidence expectation for a secondary question>
+    expected_quality: <High | Moderate | Low | Very Low>
+    recommendation_contingent_on:
+
+# --------------------------------------------------------------------------
+# Disconfirming-evidence discipline — what would flip the recommendation
+# --------------------------------------------------------------------------
+disconfirming_evidence_discipline:
+  evidence_that_flips_recommendation:
+    - <a finding that would reverse the recommended option>
+    - <a finding that would require recommending the status quo>
+    - <a finding that would require acknowledging irreducible uncertainty>
+  stakeholder_objections_that_must_be_addressed:
+    - objection: <strongest objection from stakeholder group A>
+      response_plan: <how the brief will engage, not dismiss, this objection>
+    - objection: <strongest objection from stakeholder group B>
+      response_plan:
+  minimum_evidence_bar:
+    sources_per_finding: 3   # per policy-brief-template quality checklist
+    required_evidence_levels: [<High or Moderate for primary findings>]
+    grey_literature_treatment: <flagged separately from peer-reviewed>
+
+# --------------------------------------------------------------------------
+# Search plan — locked before the search begins
+# --------------------------------------------------------------------------
+search_plan:
+  databases:
+    - <PubMed / MEDLINE>
+    - <ERIC (education)>
+    - <Cochrane Library>
+    - <EconLit>
+    - <PAIS Index / policy databases>
+    - <NBER / IZA working paper series>
+    - <grey literature: government reports, think-tank output, regulatory filings>
+    - <jurisdiction-specific registries as applicable>
+  search_strategy:
+    primary_terms: [<term 1>, <term 2>]
+    synonyms_and_mesh: [<MeSH or controlled vocab terms>]
+    boolean_structure: <e.g., (term1 OR syn1) AND (term2 OR syn2)>
+    date_range:
+      from: <earliest publication date>
+      to: <search cutoff date>
+  inclusion_criteria:
+    - <study design types accepted, e.g., RCTs, quasi-experiments, high-quality obs>
+    - <jurisdictional or population relevance criterion>
+    - <minimum methodological quality threshold>
+  exclusion_criteria:
+    - <criterion for excluding, e.g., non-peer-reviewed advocacy>
+    - <criterion for excluding, e.g., out-of-scope jurisdiction>
+  quality_appraisal_framework: GRADE   # or equivalent named framework
+  dual_screening: <true | false>   # independent second reviewer for inclusion decisions
+
+# --------------------------------------------------------------------------
+# Stakeholders to research — locked before outreach / interviews
+# --------------------------------------------------------------------------
+stakeholders_to_research:
+  - group: <affected population / intended beneficiary>
+    engagement_plan: <document review | interview | public comment synthesis>
+  - group: <implementing agency or regulator>
+    engagement_plan:
+  - group: <opposing interest / likely objector>
+    engagement_plan: <must be included — steel-manned, not straw-manned>
+  - group: <independent subject-matter expert>
+    engagement_plan:
+
+# --------------------------------------------------------------------------
+# Honest-pivot clause — the explicit commitment
+# --------------------------------------------------------------------------
+honest_pivot_clause: |
+  If the evidence search does not support the predicted findings, we will:
+  1. Report the contrary or null finding in the Evidence Review section,
+     not reframe the question to avoid it.
+  2. Revise the recommendation consistent with the evidence actually found,
+     and record the revision as a timestamped amendment to this document.
+  3. If the strongest evidence supports the status quo or "insufficient
+     evidence to recommend change", say so plainly in the Recommendation
+     section rather than proposing action on weak evidence.
+  4. Label any analysis not in this pre-registration as [exploratory]
+     throughout the brief.
+  5. Engage every stakeholder objection listed above, even when the
+     evidence base disfavors that stakeholder's position.
+
+# --------------------------------------------------------------------------
+# Amendment log — timestamped additions only, never deletions
+# --------------------------------------------------------------------------
+amendments: []   # appended to via /plan --amend, never edited in place
+
+# --------------------------------------------------------------------------
+# Self-witnessing hash — populated by /plan on exit
+# --------------------------------------------------------------------------
+sha256: <computed at hash-lock time, before evidence search begins>

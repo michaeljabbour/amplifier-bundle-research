@@ -1,0 +1,130 @@
+name: replication-study
+version: 0.1.0
+description: |
+  Replication and reproducibility study. Designed for researchers reproducing
+  prior work. Starts at /plan (question comes from source paper). Includes
+  honest-pivot checks against the original study's claims.
+
+# ---------------------------------------------------------------------------
+# Mode sequence — reduced pipeline (no /question — uses source paper)
+# ---------------------------------------------------------------------------
+modes:
+  - id: plan
+    purpose: Extract original methodology and design replication protocol
+    persona_hint: |
+      Expect Persona B (researcher or methodologist). Provide the source paper
+      and your replication data. The bundle will extract the original claims,
+      methodology, and analysis plan.
+    tools:
+      - source-paper-extractor:
+          required: true
+          outputs: [claims, methodology, analysis_plan]
+      - replication-protocol-builder:
+          match_original: true
+          allow_extensions: true
+  - id: execute
+    purpose: Run replication with original methodology plus registered extensions
+    tools:
+      - replication-executor:
+          enforce_original_design: true
+          log_deviations: true
+      - results-aggregator:
+          include_original_comparison: true
+  - id: critique
+    purpose: Compare results to original, assess replication success
+    emphasis:
+      - result_comparison  # do results match original quantitatively?
+      - replication_success_criteria  # statistical power, confidence intervals
+      - deviation_documentation  # what differed from original design and why?
+      - honest_pivot_vs_original  # does analysis diverge from original's claims?
+  - id: draft
+    purpose: Replication report with side-by-side comparison
+    template: templates/replication-skeleton.md
+    sections:
+      - abstract
+      - original-study-summary
+      - replication-protocol
+      - differences-from-original
+      - results-comparison-table
+      - analysis
+      - discussion
+      - implications-for-original-claim
+  - id: publish
+    purpose: Replication-ready output
+    output_formats: [pdf, docx]
+    artifacts:
+      - replication-report.pdf
+      - results-comparison.xlsx
+      - preregistration.yaml
+
+# ---------------------------------------------------------------------------
+# Defaults — overridable by user
+# ---------------------------------------------------------------------------
+defaults:
+  honest_pivot: true
+  exploratory_labeling: true
+  preregistration_required: true
+  citation_style: apa
+
+# ---------------------------------------------------------------------------
+# Special behavior: honest-pivot vs. original
+# ---------------------------------------------------------------------------
+honest_pivot_mode: original
+special_behavior:
+  - comparison_target: original_study_claims  # not pre-registration, but original paper
+  - flag_on: deviation from original methodology OR contradiction of original results
+  - replication_success_definition: configurable by user (exact match vs. direction match vs. CI overlap)
+
+# ---------------------------------------------------------------------------
+# Publish gates — enforced at /publish entry. Session refuses to run /publish
+# until these conditions are satisfied.
+# ---------------------------------------------------------------------------
+publish_gates:
+  # -- v0.3 workflow gates ---------------------------------------------------
+  critique_required:
+    enabled: true
+    description: |
+      /publish refuses to execute until at least one /critique pass has produced
+      a critique_report artifact for the current draft. This prevents publishing
+      work that has not been subjected to structured self-review.
+    enforcement: block
+    bypass: "--no-critique-gate"
+    bypass_warning: |
+      Publishing without a critique pass. The output's metadata will record
+      that critique was bypassed. This is appropriate for informal drafts and
+      internal-use documents, but not recommended for external publication.
+    artifact_required: critique.yaml  # produced by /critique mode; lives in .amplifier/sessions/<session>/
+
+  honest_pivot_acknowledged:
+    enabled: true
+    description: |
+      If /execute produced findings that diverge from the pre-registration,
+      /publish requires the user has acknowledged each divergence via the
+      honest-pivot behavior (either labeled exploratory, amended with
+      timestamp, or disabled with --no-honest-pivot flag).
+    enforcement: block
+    bypass: null  # Cannot be bypassed — architectural guarantee
+
+  # -- Domain-specific quality gates ----------------------------------------
+  quality_gates:
+    - name: original_method_documented
+      condition: original methodology extracted and clearly stated
+      on_fail: block
+    - name: replication_protocol_clear
+      condition: replication protocol differs from original only where explicitly justified
+      on_fail: block
+    - name: results_comparison_complete
+      condition: results table shows original vs. replication side-by-side with CI overlap
+      on_fail: block
+    - name: honest_assessment
+      condition: replication success assessed honestly (no softening of null results)
+      on_fail: block
+
+# ---------------------------------------------------------------------------
+# Persona detection hints
+# ---------------------------------------------------------------------------
+persona_signals:
+  persona_b_indicators:
+    - user provides source paper URL or PDF
+    - user has collected replication data
+    - user names original study and asks if results replicate

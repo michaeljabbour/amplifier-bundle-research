@@ -1,0 +1,129 @@
+name: policy-brief
+version: 0.1.0
+description: |
+  Evidence-based policy brief for policymakers, regulators, and advocacy organizations.
+  Designed to turn a policy position into a defensible evidence brief with systematic
+  literature review, counter-argument coverage, and implementation feasibility assessment.
+
+# ---------------------------------------------------------------------------
+# Mode sequence — full six-mode pipeline
+# ---------------------------------------------------------------------------
+modes:
+  - id: question
+    purpose: Decompose policy position into load-bearing claims
+    persona_hint: |
+      Expect Persona A (policy analyst or advocate). Default to plain language.
+      Ask what problem this policy solves, who it affects, and what success looks like
+      without requiring technical methodology background.
+  - id: plan
+    purpose: Lock the evidence strategy and success criteria
+    emphasis:
+      - evidence_strategy  # which sources count, which don't
+      - disconfirming_evidence  # what would actually change the author's mind?
+      - stakeholder_mapping  # who benefits, who bears costs
+  - id: execute
+    purpose: Systematic evidence gathering
+    tools:
+      - evidence-search:
+          sources: [pubmed, eric, policy-databases, case-studies]
+          search_strategy: systematic
+      - stakeholder-research:
+          target_groups: true
+      - comparative-policy:
+          similar_jurisdictions: true
+  - id: critique
+    purpose: Evidence quality stress test and counter-argument fairness
+    emphasis:
+      - evidence_quality  # GRADE for policy evidence
+      - claim_support  # are recommendations proportionate to evidence?
+      - counter_arguments  # strawman detection
+      - unintended_consequences  # second-order effects
+  - id: draft
+    purpose: Policy-brief structured output
+    template: templates/policy-brief-skeleton.md
+    sections:
+      - executive-summary
+      - policy-question
+      - evidence-base
+      - recommendations
+      - counter-arguments-considered
+      - implementation-strategy
+      - limitations-and-caveats
+  - id: publish
+    purpose: Policy-ready output
+    output_formats: [pdf, docx, html]
+    artifacts:
+      - policy-brief.pdf
+      - policy-brief.docx
+      - evidence-table.xlsx
+      - preregistration.yaml  # locked plan
+
+# ---------------------------------------------------------------------------
+# Defaults — overridable by user
+# ---------------------------------------------------------------------------
+defaults:
+  honest_pivot: true
+  exploratory_labeling: true
+  preregistration_required: true
+  citation_style: chicago
+  audience_level: policymaker  # non-specialist
+
+# ---------------------------------------------------------------------------
+# Publish gates — enforced at /publish entry. Session refuses to run /publish
+# until these conditions are satisfied.
+# ---------------------------------------------------------------------------
+publish_gates:
+  # -- v0.3 workflow gates ---------------------------------------------------
+  critique_required:
+    enabled: true
+    description: |
+      /publish refuses to execute until at least one /critique pass has produced
+      a critique_report artifact for the current draft. This prevents publishing
+      work that has not been subjected to structured self-review.
+    enforcement: block
+    bypass: "--no-critique-gate"
+    bypass_warning: |
+      Publishing without a critique pass. The output's metadata will record
+      that critique was bypassed. This is appropriate for informal drafts and
+      internal-use documents, but not recommended for external publication.
+    artifact_required: critique.yaml  # produced by /critique mode; lives in .amplifier/sessions/<session>/
+
+  honest_pivot_acknowledged:
+    enabled: true  # applies if the pre-registered policy evidence search
+                   # produces results that differ from expectations
+    description: |
+      If /execute produced findings that diverge from the pre-registration,
+      /publish requires the user has acknowledged each divergence via the
+      honest-pivot behavior (either labeled exploratory, amended with
+      timestamp, or disabled with --no-honest-pivot flag).
+    enforcement: block
+    bypass: null  # Cannot be bypassed — architectural guarantee
+
+  # -- Domain-specific quality gates ----------------------------------------
+  quality_gates:
+    - name: evidence_quality
+      condition: minimum GRADE score of C (not "very low quality")
+      on_fail: warn
+    - name: recommendation_specificity
+      condition: each recommendation tied to ≥1 evidence claim
+      on_fail: block
+    - name: counter_arguments
+      condition: ≥1 counter-argument section completed and marked as fair
+      on_fail: block
+    - name: unintended_consequences
+      condition: identified and addressed for at least primary recommendation
+      on_fail: warn
+
+# ---------------------------------------------------------------------------
+# Persona detection hints
+# ---------------------------------------------------------------------------
+persona_signals:
+  persona_a_indicators:
+    - user has a policy position to defend
+    - user is not a researcher by training
+    - user asks "what evidence supports this?"
+  persona_b_indicators:
+    - user references research methodology or study design
+    - user provides structured research questions
+  persona_c_indicators:
+    - user invokes /critique standalone to evaluate a policy brief

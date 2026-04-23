@@ -1,0 +1,59 @@
+# ==========================================================================
+# requirements.in  -  TOP-LEVEL DEPENDENCIES (unpinned, human-edited)
+# ==========================================================================
+# This file is the *intent* layer: list only the packages you directly
+# import or invoke. Do NOT list transitive dependencies, do NOT add version
+# pins except where a genuine compatibility constraint exists (e.g., a
+# breaking change you have not yet migrated past).
+#
+# GENERATE THE LOCKFILE
+# ---------------------
+# With pip-tools:
+#
+#     pip install pip-tools
+#     pip-compile requirements.in --output-file requirements.txt
+#
+# With uv (faster, recommended for fresh projects):
+#
+#     uv pip compile requirements.in -o requirements.txt
+#
+# Commit BOTH files:
+#   - requirements.in   ->  your declared intent (this file)
+#   - requirements.txt  ->  the exact, hash-checked, transitive-resolved lock
+#
+# To upgrade a single package (e.g., scipy), re-compile with:
+#     uv pip compile --upgrade-package scipy requirements.in -o requirements.txt
+#
+# To install into a fresh venv:
+#     python3.11 -m venv .venv && source .venv/bin/activate
+#     uv pip sync requirements.txt      # or: pip-sync requirements.txt
+#
+# Record the sha256 of requirements.txt in execution-log.yaml under
+# environment_capture.environment_file_digest.
+# ==========================================================================
+
+# --- core scientific stack ------------------------------------------------
+numpy
+pandas
+scipy
+matplotlib
+scikit-learn
+statsmodels
+
+# --- notebooks & workflow -------------------------------------------------
+jupyterlab
+ipykernel
+
+# --- I/O & storage --------------------------------------------------------
+pyarrow
+openpyxl
+
+# --- quality-of-life ------------------------------------------------------
+tqdm
+pyyaml
+
+# --- add project-specific deps below --------------------------------------
+# e.g.:
+# seaborn
+# arviz
+# torch

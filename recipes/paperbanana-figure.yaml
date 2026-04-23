@@ -1,0 +1,298 @@
+name: "paperbanana-figure-generation"
+description: "Multi-stage figure generation with PaperBanana quality validation and approval gates"
+version: "1.0.0"
+tags: ["figures", "paperbanana", "scientific-paper", "quality-validation", "multi-stage"]
+
+# Input context required for recipe execution
+context:
+  paper_content: ""           # Required: paper text for context extraction
+  figure_type: "methodology"  # Options: methodology, plot, architecture
+  conference: "neurips"       # Target conference for style guidelines
+
+# Staged recipe with approval gates for human-in-loop workflow
+stages:
+  # ============================================================
+  # Stage 1: PLANNING
+  # Extract context from paper and plan figure approach
+  # Requires approval before proceeding to generation
+  # ============================================================
+  - name: planning
+    description: "Extract paper context and plan figure content/style"
+    approval_required: true
+    approval_prompt: |
+      📋 **Figure Plan Review**
+      
+      Please review the proposed figure plan:
+      
+      {{figure_plan}}
+      
+      **Context extracted:**
+      {{paper_context}}
+      
+      ✅ Approve to proceed with generation
+      ❌ Deny to revise the plan
+    
+    steps:
+      - id: extract-context
+        agent: research:figure-designer
+        prompt: |
+          Extract relevant context from this paper for a {{figure_type}} figure:
+          
+          ```
+          {{paper_content}}
+          ```
+          
+          Identify and extract:
+          1. Key concepts that should be visualized
+          2. Relevant paper sections and technical details
+          3. Target audience expertise level
+          4. Critical terminology and notation
+          5. Related work or comparisons to illustrate
+          
+          Provide a focused summary suitable for figure planning.
+        output: paper_context
+        timeout: 300
+
+      - id: plan-figure
+        agent: research:figure-designer
+        prompt: |
+          Plan a {{figure_type}} figure for {{conference}} conference submission.
+          
+          **Paper Context:**
+          {{paper_context}}
+          
+          **Planning Requirements:**
+          1. **Figure Purpose:** What key message should this convey?
+          2. **Visual Elements:** What components/panels are needed?
+          3. **Style Considerations:** {{conference}} specific requirements
+          4. **PaperBanana Strategy:** Prompt approach and tool usage
+          5. **Layout:** Arrangement and visual hierarchy
+          
+          Provide a clear, actionable plan suitable for human review and approval.
+          Consider PaperBanana's capabilities and best practices for {{figure_type}} figures.
+        output: figure_plan
+        timeout: 300
+        depends_on: [extract-context]
+
+  # ============================================================
+  # Stage 2: GENERATION
+  # Generate figure using PaperBanana and validate quality
+  # ============================================================
+  - name: generation
+    description: "Generate figure using tool-paperbanana and validate quality"
+    
+    steps:
+      - id: generate-figure
+        agent: research:figure-designer
+        prompt: |
+          Generate a {{figure_type}} figure using the PaperBanana tool.
+          
+          **Approved Plan:**
+          {{figure_plan}}
+          
+          **Context:**
+          {{paper_context}}
+          
+          **Target:**
+          Conference: {{conference}}
+          Figure Type: {{figure_type}}
+          
+          **Instructions:**
+          1. Use tool-paperbanana to create the figure
+          2. Follow the approved plan precisely
+          3. Apply best practices for {{figure_type}} visualization
+          4. Ensure {{conference}} style compliance
+          5. Optimize for clarity and professional presentation
+          
+          Execute the generation and report the result including file paths.
+        output: generation_result
+        timeout: 900  # 15 minutes for complex figures
+        on_error: fail  # Critical step - must succeed
+
+      - id: validate-quality
+        agent: research:figure-designer
+        prompt: |
+          Perform rigorous quality validation on the generated figure.
+          
+          **Generated Figure:**
+          {{generation_result}}
+          
+          **Original Plan:**
+          {{figure_plan}}
+          
+          **Quality Veto Rules (PaperBanana Standards):**
+          1. ✓ Text legibility (font sizes ≥8pt, sufficient contrast)
+          2. ✓ Visual clarity (no clutter, clear hierarchy, white space)
+          3. ✓ Conference requirements met ({{conference}} standards)
+          4. ✓ Alignment with approved plan
+          5. ✓ Professional appearance (consistent styling, aligned elements)
+          6. ✓ Accessibility (colorblind-safe if using color)
+          
+          **Required Output Format (JSON):**
+          Return a JSON object with this exact structure:
+          ```json
+          {
+            "quality_passed": true or false,
+            "severity": "pass" or "minor" or "major" or "critical",
+            "issues": ["list specific issues found"],
+            "suggestions": ["concrete improvement suggestions"],
+            "compliant_checks": {
+              "text_legibility": true or false,
+              "visual_clarity": true or false,
+              "conference_requirements": true or false,
+              "plan_alignment": true or false
+            }
+          }
+          ```
+          
+          Be thorough and objective in your assessment.
+        output: quality_check
+        parse_json: true  # Extract JSON structure from agent response
+        timeout: 300
+        depends_on: [generate-figure]
+
+  # ============================================================
+  # Stage 3: REFINEMENT
+  # Conditional refinement if quality validation fails
+  # Steps only execute when quality issues are detected
+  # ============================================================
+  - name: refinement
+    description: "Refine figure if quality validation identified issues"
+    
+    steps:
+      - id: assess-refinement-need
+        agent: research:figure-designer
+        prompt: |
+          Assess whether refinement is needed based on quality results.
+          
+          **Quality Check:**
+          {{quality_check}}
+          
+          **Decision Logic:**
+          - If severity is "critical" or "major": Refinement REQUIRED
+          - If severity is "minor": Refinement OPTIONAL (user can accept)
+          - If severity is "pass": No refinement needed
+          
+          Provide a brief assessment and recommendation.
+        output: refinement_assessment
+        timeout: 60
+        # Only run if quality didn't pass
+        condition: "{{quality_check.quality_passed}} == false"
+
+      - id: refine-figure
+        agent: research:figure-designer
+        prompt: |
+          Refine the figure to address quality issues.
+          
+          **Original Generation:**
+          {{generation_result}}
+          
+          **Quality Issues to Address:**
+          {{quality_check.issues}}
+          
+          **Improvement Suggestions:**
+          {{quality_check.suggestions}}
+          
+          **Refinement Instructions:**
+          1. Use tool-paperbanana to regenerate with improvements
+          2. Address ALL identified issues systematically
+          3. Maintain core plan and content
+          4. Focus on the specific problems noted in validation
+          5. Preserve what worked in the original
+          
+          Execute refinement and report the improved result.
+        output: refined_result
+        timeout: 900
+        # Only run if quality check failed (major/critical issues)
+        condition: "{{quality_check.severity}} == 'major' or {{quality_check.severity}} == 'critical'"
+        depends_on: [assess-refinement-need]
+        on_error: continue  # If refinement fails, user can review original
+
+      - id: validate-refinement
+        agent: research:figure-designer
+        prompt: |
+          Validate the refined figure quality.
+          
+          **Refined Figure:**
+          {{refined_result}}
+          
+          **Original Issues:**
+          {{quality_check.issues}}
+          
+          Perform the same quality checks as before. Return JSON validation result:
+          ```json
+          {
+            "quality_passed": true or false,
+            "severity": "pass" or "minor" or "major" or "critical",
+            "issues": ["remaining issues if any"],
+            "improvements": ["what was successfully improved"],
+            "compliant_checks": {
+              "text_legibility": true or false,
+              "visual_clarity": true or false,
+              "conference_requirements": true or false,
+              "plan_alignment": true or false
+            }
+          }
+          ```
+        output: final_quality_check
+        parse_json: true
+        timeout: 300
+        condition: "{{quality_check.severity}} == 'major' or {{quality_check.severity}} == 'critical'"
+        depends_on: [refine-figure]
+        on_error: continue  # Non-critical validation
+
+# Recursion protection: prevent runaway refinement loops
+recursion:
+  max_depth: 2          # Allow one level of sub-recipe calls
+  max_total_steps: 25   # Safety limit for total steps
+
+# ============================================================
+# USAGE INSTRUCTIONS
+# ============================================================
+#
+# Execute this recipe with:
+#
+#   amplifier run "execute recipes/paperbanana-figure.yaml with \
+#     paper_content='<paper text>' \
+#     figure_type='methodology' \
+#     conference='neurips'"
+#
+# Figure Types:
+#   - methodology: System diagrams, workflow illustrations
+#   - plot: Data visualizations, charts, graphs
+#   - architecture: Technical architecture diagrams
+#
+# Common Conferences:
+#   - neurips, icml, iclr, cvpr, aaai, etc.
+#
+# Workflow:
+#   1. Planning stage extracts context and creates plan
+#   2. Human approval required before generation
+#   3. Generation stage uses PaperBanana to create figure
+#   4. Quality validation with structured JSON output
+#   5. Conditional refinement if quality issues detected
+#   6. Final validated figure ready for paper inclusion
+#
+# Outputs Available:
+#   - paper_context: Extracted paper context
+#   - figure_plan: Approved figure plan
+#   - generation_result: Initial generated figure
+#   - quality_check: Quality validation results (JSON)
+#   - refined_result: Refined figure (if refinement ran)
+#   - final_quality_check: Final validation (if refinement ran)
+#
+# ============================================================
+# ERROR HANDLING NOTES
+# ============================================================
+#
+# - generate-figure: on_error: fail (critical - must succeed)
+# - refine-figure: on_error: continue (user can review original)
+# - validate-refinement: on_error: continue (validation is helpful but not critical)
+# - All other steps: default on_error: fail
+#
+# Timeouts:
+#   - Context/planning steps: 5 minutes (300s)
+#   - Generation/refinement: 15 minutes (900s) for complex figures
+#   - Validation: 5 minutes (300s)
+#
+# ============================================================

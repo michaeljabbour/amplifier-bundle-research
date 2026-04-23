@@ -1,0 +1,157 @@
+% amplifier-bundle-research: IMRAD LaTeX skeleton
+% Target: arXiv preprint (default). Switch document class for venue-specific formatting.
+% Usage: venue-formatter agent populates this skeleton during /publish mode.
+
+\documentclass[11pt]{article}
+
+% === Essential package stack ===
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,mathtools}  % math
+\usepackage{graphicx}                    % figures
+\usepackage{booktabs}                    % tables (never use \hline with vertical rules)
+\usepackage{microtype}                   % typography
+\usepackage[numbers]{natbib}             % citations — switch to author-year for NeurIPS/ACL
+\usepackage{hyperref}                    % clickable refs (load second-to-last)
+\usepackage[capitalize,noabbrev]{cleveref} % smart refs (load last)
+
+% === Optional but recommended ===
+\usepackage{algorithm,algorithmic}       % algorithms
+\usepackage{subcaption}                  % subfigures
+\usepackage{xcolor}                      % colored text (for draft annotations)
+\usepackage{enumitem}                    % list control
+\usepackage{url}                         % URL formatting
+
+% === Draft-mode annotations (remove before submission) ===
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{TODO:} #1}}
+\newcommand{\exploratory}[1]{\textcolor{orange}{\textbf{[EXPLORATORY]} #1}}
+\newcommand{\prereg}[1]{\textcolor{blue}{\textbf{[PRE-REG]} #1}}
+
+% === Document metadata ===
+\title{%TITLE%}
+\author{%AUTHORS%}
+\date{%DATE%}
+
+\begin{document}
+
+\maketitle
+
+% === Abstract ===
+% 5-component structure: background, gap, approach, results, implications
+\begin{abstract}
+%ABSTRACT_BACKGROUND%
+%ABSTRACT_GAP%
+%ABSTRACT_APPROACH%
+%ABSTRACT_RESULTS%
+%ABSTRACT_IMPLICATIONS%
+\end{abstract}
+
+% === Keywords (if required by venue) ===
+% \textbf{Keywords:} %KEYWORDS%
+
+% === 1. Introduction ===
+\section{Introduction}
+\label{sec:introduction}
+
+% Paragraph 1: Broad context — why this area matters
+%INTRO_CONTEXT%
+
+% Paragraph 2: Specific problem — what gap exists
+%INTRO_GAP%
+
+% Paragraph 3: This work — what we do and why it matters
+%INTRO_CONTRIBUTION%
+
+% Paragraph 4: Results preview — what we found (1-2 sentences)
+%INTRO_RESULTS_PREVIEW%
+
+% Paragraph 5: Paper structure (optional — skip for short papers)
+%INTRO_STRUCTURE%
+
+% === 2. Related Work ===
+\section{Related Work}
+\label{sec:related}
+
+%RELATED_WORK%
+
+% === 3. Methods ===
+\section{Methods}
+\label{sec:methods}
+
+% Pre-registration reference (if applicable)
+% This study was pre-registered at [URL/hash]. The pre-registration
+% specifies hypotheses, analysis plan, and stopping rules.
+
+%METHODS_CONTENT%
+
+\subsection{Experimental Setup}
+\label{sec:setup}
+%METHODS_SETUP%
+
+\subsection{Evaluation Metrics}
+\label{sec:metrics}
+%METHODS_METRICS%
+
+% === 4. Results ===
+\section{Results}
+\label{sec:results}
+
+% Confirmatory results first, then exploratory (labeled)
+%RESULTS_CONFIRMATORY%
+
+%RESULTS_EXPLORATORY%
+
+% === 5. Discussion ===
+\section{Discussion}
+\label{sec:discussion}
+
+%DISCUSSION_CONTENT%
+
+\subsection{Limitations}
+\label{sec:limitations}
+% Be specific — not "our study has limitations" but exactly what they are
+%LIMITATIONS%
+
+% === 6. Conclusion ===
+\section{Conclusion}
+\label{sec:conclusion}
+%CONCLUSION%
+
+% === Acknowledgments ===
+% \section*{Acknowledgments}
+% %ACKNOWLEDGMENTS%
+
+% === Ethics Statement (if required) ===
+% \section*{Ethics Statement}
+% %ETHICS%
+
+% === Reproducibility Statement ===
+% \section*{Reproducibility Statement}
+% Code: %CODE_URL%
+% Data: %DATA_URL%
+% Environment: %ENVIRONMENT%
+% Seeds: %SEEDS%
+
+% === Author Contributions (CRediT taxonomy) ===
+% \section*{Author Contributions}
+% %CREDIT_CONTRIBUTIONS%
+
+% === Conflict of Interest ===
+% \section*{Declaration of Competing Interests}
+% %COI%
+
+% === Data Availability ===
+% \section*{Data Availability Statement}
+% %DATA_AVAILABILITY%
+
+% === Bibliography ===
+\bibliographystyle{plainnat}  % switch per venue: abbrvnat, ieeetr, acl_natbib
+\bibliography{references}
+
+% === Appendix (optional) ===
+% \appendix
+% \section{Supplementary Material}
+% \label{app:supplementary}
+% %APPENDIX%
+
+\end{document}

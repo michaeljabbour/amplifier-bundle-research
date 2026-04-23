@@ -1,0 +1,86 @@
+# =============================================================================
+# Dockerfile.research  -  ARCHIVAL REPRODUCIBILITY IMAGE
+# =============================================================================
+# Purpose: a single container that bundles the Python stack, the LaTeX
+# toolchain, and the helper binaries (pandoc, graphviz) a research paper
+# needs from analysis through typeset PDF. Use this when you want a
+# reviewer (or yourself, five years from now) to reproduce the paper
+# without installing anything on the host.
+#
+# BUILD
+# -----
+#     docker build -f Dockerfile.research -t paper-env:latest .
+#
+#     # For archival reproducibility, also tag with a git SHA or version:
+#     docker build -f Dockerfile.research -t paper-env:$(git rev-parse --short HEAD) .
+#
+# RUN (interactive, mounted workspace)
+# -----------------------------------
+#     docker run --rm -it -v "$PWD":/work paper-env:latest bash
+#
+# RUN (one-shot: regenerate results and PDF)
+# ------------------------------------------
+#     docker run --rm -v "$PWD":/work paper-env:latest \
+#         bash -lc "python analysis/run_all.py && latexmk -pdf paper.tex"
+#
+# ARCHIVAL PINNING (important)
+# ----------------------------
+# The `python:3.11-slim` tag floats. Before archiving the paper, resolve
+# the tag to its content-addressable digest and pin THAT:
+#
+#     docker pull python:3.11-slim
+#     docker inspect --format='{{index .RepoDigests 0}}' python:3.11-slim
+#     # -> python@sha256:<64-hex>
+#
+# Replace the FROM line below with that digest, rebuild, and record the
+# digest in execution-log.yaml under environment_capture.environment_file_digest.
+# Also push the built image to a registry you control (or `docker save`
+# it to a tarball stored with the paper's supplementary materials).
+#
+# WHEN TO USE vs requirements.txt / environment.yml
+# -------------------------------------------------
+#   - Analysis code only, Python-only        ->  requirements.txt
+#   - Analysis code with C-extensions        ->  environment.yml
+#   - Full pipeline (code + LaTeX + fonts)   ->  Dockerfile.research (this file)
+#   - Submission to a reviewer who may not
+#     have LaTeX / pandoc / graphviz on hand ->  Dockerfile.research
+# =============================================================================
+
+# Pin to digest before archiving; tag is fine during active development.
+FROM python:3.11-slim
+
+# --- OS-level dependencies --------------------------------------------------
+# texlive-latex-recommended/-fonts-recommended/-latex-extra is the minimum
+# realistic LaTeX set for IMRaD/ACL/IEEE templates in this bundle. Add
+# texlive-science or texlive-bibtex-extra if your paper needs them.
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+        texlive-latex-recommended \
+        texlive-fonts-recommended \
+        texlive-latex-extra \
+        latexmk \
+        graphviz \
+        pandoc \
+        ca-certificates \
+        git \
+ && rm -rf /var/lib/apt/lists/*
+
+# --- Python dependencies ----------------------------------------------------
+WORKDIR /work
+
+# Copy the lockfile first so `docker build` caches this layer when only
+# source code changes.
+COPY requirements.txt /work/requirements.txt
+RUN pip install --no-cache-dir --require-hashes -r requirements.txt \
+ || pip install --no-cache-dir -r requirements.txt
+# (The `--require-hashes` path is the reproducible one; the fallback exists
+#  so the placeholder requirements.txt shipped with this bundle does not
+#  break the build before the user runs `uv pip compile`.)
+
+# --- project source ---------------------------------------------------------
+COPY . /work
+
+# Default command: drop into a shell inside /work. Override at `docker run`
+# time for one-shot analysis.
+CMD ["bash"]

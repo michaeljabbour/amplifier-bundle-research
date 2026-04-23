@@ -1,0 +1,51 @@
+================================================================================
+NeurIPS LaTeX Style Guide - Quick Summary
+================================================================================
+
+FILE LOCATION:
+/sessions/gallant-loving-wright/mnt/amplifier-bundle-scientificpaper/references/latex-style-guides/neurips-style-guide.md
+
+CONTENTS OVERVIEW:
+- Style file installation and usage instructions
+- Document class setup with package options (final, preprint, nonatbib)
+- Required LaTeX packages
+- Citation and bibliography guidelines
+- Page layout specifications (5.5" x 9")
+- Formatting rules for headings, figures, and tables
+- Author information and anonymity requirements
+- Acknowledgments and required declarations
+- Complete LaTeX preamble example
+- Download links for official style files
+- Troubleshooting guide
+
+KEY FORMATTING RULES:
+- Maximum 9 pages of content (excluding references, appendices)
+- Font: Times New Roman, 10pt
+- Line spacing: 11pts
+- Text area: 5.5" wide x 9" tall
+- Citations: Author/Year OR Numeric (must be consistent)
+- Default bibliography: natbib package
+
+PACKAGE OPTIONS:
+- Default (submission): \usepackage{neurips_2024}
+- Final/Camera-ready: \usepackage[final]{neurips_2024}
+- ArXiv preprint: \usepackage[preprint]{neurips_2024}
+- If natbib conflicts: \usepackage[nonatbib]{neurips_2024}
+
+IMPORTANT:
+- Always use the current year's style file
+- Do NOT modify the .sty file (grounds for rejection)
+- Omit 'final' and 'preprint' options at submission time
+- Maintain anonymity by using "Anonymous submission" for authors
+- Include acknowledgments only in final camera-ready version
+- All co-authors must have OpenReview profiles
+
+OFFICIAL RESOURCES:
+- NeurIPS 2024: https://neurips.cc/Conferences/2024/PaperInformation/StyleFiles
+- NeurIPS 2025: https://neurips.cc/Conferences/2025/PaperInformation/StyleFiles
+- GitHub: https://github.com/ArmageddonKnight/NeurIPS
+- Overleaf: https://www.overleaf.com/latex/templates/neurips-2024/tpsbbrdqcmsh
+
+Generated: February 4, 2025
+Document Version: 1.0
+================================================================================

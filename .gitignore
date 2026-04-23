@@ -1,0 +1,136 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.venv/
+venv/
+ENV/
+env/
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
+*.bcf
+*.run.xml
+*.nav
+*.snm
+*.vrb
+*.dvi
+*.ps
+*.pdf
+*.fdb_latexmk
+*.synctex
+*.synctex(busy)
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# Amplifier
+.amplifier/sessions/
+.amplifier/cache/
+
+# Ruff cache
+.ruff_cache/
+
+# Test outputs and generated figures
+figures/
+sessions/
+
+# Development status files
+*_COMPLETE.md
+*_STATUS.md
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Test outputs and generated figures (from demos/testing)
+figures/
+outputs/
+test-outputs/
+
+# Development status files (not for end users)
+*_STATUS.md
+*_COMPLETE.md
+*_SUMMARY.md
+*_DELIVERY.md
+IMPLEMENTATION_PLAN*.md
+
+# Sessions (user-specific)
+sessions/
+
+# Secrets and credentials — belt-and-suspenders; none present today
+.env
+.env.*
+*.pem
+*.key
+id_rsa
+id_rsa.pub
+*.secrets
+.secrets
+.aws/
+.gcloud/

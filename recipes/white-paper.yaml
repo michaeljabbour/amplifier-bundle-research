@@ -1,0 +1,129 @@
+name: white-paper
+version: 0.1.0
+description: |
+  Technical white paper for business decision-makers and technical evaluators.
+  Designed for founders, engineers, and analysts to defend a technical thesis through
+  evidence, comparative analysis, and practical case studies.
+
+# ---------------------------------------------------------------------------
+# Mode sequence — full six-mode pipeline
+# ---------------------------------------------------------------------------
+modes:
+  - id: question
+    purpose: Sharpen the technical thesis into falsifiable claims
+    persona_hint: |
+      Expect Persona A or B (engineer, founder, or analyst). Ask what problem
+      the thesis solves, what makes it different from existing approaches, and
+      what evidence would prove or disprove it.
+  - id: plan
+    purpose: Lock the thesis and evidence-gathering strategy
+    emphasis:
+      - thesis_clarity  # can it be stated in one sentence?
+      - evidence_scope  # what counts as evidence (benchmarks, case studies, analysis)
+      - competitive_analysis  # which solutions to compare against
+      - bias_risks  # motivated reasoning detection
+  - id: execute
+    purpose: Evidence gathering and analysis
+    tools:
+      - competitive-analysis:
+          depth: 2
+      - case-study-research:
+          min_count: 3
+      - benchmarking:
+          optional: true
+  - id: critique
+    purpose: Thesis defensibility and overclaim detection
+    emphasis:
+      - thesis_defense  # does evidence actually support the main claim?
+      - overclaiming  # flag "significantly", "dramatically", "best-in-class" without numbers
+      - evidence_gaps  # what key evidence is missing?
+      - generalization_limits  # does evidence apply broadly or narrowly?
+  - id: draft
+    purpose: Technical white paper structure
+    template: templates/white-paper-skeleton.md
+    sections:
+      - executive-summary
+      - problem-statement
+      - proposed-solution
+      - competitive-landscape
+      - case-studies
+      - evidence-and-analysis
+      - limitations
+      - recommendations
+  - id: publish
+    purpose: Publication-ready output
+    output_formats: [pdf, docx]
+    artifacts:
+      - white-paper.pdf
+      - white-paper.docx
+      - competitive-table.xlsx
+      - evidence-summary.yaml
+
+# ---------------------------------------------------------------------------
+# Defaults — overridable by user
+# ---------------------------------------------------------------------------
+defaults:
+  honest_pivot: true
+  exploratory_labeling: true
+  preregistration_required: false  # lighter than empirical papers
+  citation_style: apa
+  target_audience: business-decision-maker
+
+# ---------------------------------------------------------------------------
+# Publish gates — enforced at /publish entry. Session refuses to run /publish
+# until these conditions are satisfied.
+# ---------------------------------------------------------------------------
+publish_gates:
+  # -- v0.3 workflow gates ---------------------------------------------------
+  critique_required:
+    enabled: true
+    description: |
+      /publish refuses to execute until at least one /critique pass has produced
+      a critique_report artifact for the current draft. This prevents publishing
+      work that has not been subjected to structured self-review.
+    enforcement: block
+    bypass: "--no-critique-gate"
+    bypass_warning: |
+      Publishing without a critique pass. The output's metadata will record
+      that critique was bypassed. This is appropriate for informal drafts and
+      internal-use documents, but not recommended for external publication.
+    artifact_required: critique.yaml  # produced by /critique mode; lives in .amplifier/sessions/<session>/
+
+  honest_pivot_acknowledged:
+    enabled: true  # Fires only if /plan produced a pre-registration; skip-safe otherwise.
+    description: |
+      If /execute produced findings that diverge from the pre-registration,
+      /publish requires the user has acknowledged each divergence via the
+      honest-pivot behavior (either labeled exploratory, amended with
+      timestamp, or disabled with --no-honest-pivot flag).
+    enforcement: block
+    bypass: null  # Cannot be bypassed — architectural guarantee
+
+  # -- Domain-specific quality gates ----------------------------------------
+  quality_gates:
+    - name: thesis_clarity
+      condition: thesis statement is ≤2 sentences and falsifiable
+      on_fail: block
+    - name: evidence_coverage
+      condition: ≥3 independent sources of evidence cited per major claim
+      on_fail: warn
+    - name: overclaim_detection
+      condition: no unqualified superlative claims detected
+      on_fail: block
+    - name: competitive_analysis
+      condition: ≥2 competitor/alternative solutions analyzed
+      on_fail: warn
+
+# ---------------------------------------------------------------------------
+# Persona detection hints
+# ---------------------------------------------------------------------------
+persona_signals:
+  persona_a_indicators:
+    - user has a business or technical thesis
+    - user is not conducting primary research
+    - user asks how to support a claim with evidence
+  persona_b_indicators:
+    - user references methodology or research design
+    - user provides competitive landscape analysis
+  persona_c_indicators:
+    - user invokes /critique to evaluate an incoming white paper

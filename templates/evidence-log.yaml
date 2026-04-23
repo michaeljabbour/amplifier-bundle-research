@@ -1,0 +1,200 @@
+# ==========================================================================
+# EVIDENCE-GATHER LOG  -  what actually happened during /execute for
+#                        non-empirical recipes
+# ==========================================================================
+# Written by research-coordinator during /execute for recipes whose
+# "execution" is systematic evidence gathering, not analysis of data:
+#     patent-brief      (prior-art search)
+#     policy-brief      (systematic evidence + stakeholder mapping)
+#     literature-review (systematic search + inclusion screening)
+#
+# For empirical recipes, use templates/execution-log.yaml instead.
+#
+# This file accompanies the relevant pre-registration
+# (patent-prereg.yaml / policy-prereg.yaml / preregistration.yaml) in
+# the session artifact bundle. Reviewers use it to verify that the
+# search plan committed at /plan was actually executed at /execute.
+#
+# At /execute exit, the sha256 of this file is concatenated with the
+# pre-registration sha256 and re-hashed; that combined hash is the
+# baseline honest-pivot checks against during /critique and /draft.
+#
+# All timestamps are ISO-8601 with timezone. All hashes are hex sha256
+# (lowercase, no prefix). Example values below show a filled-in log for
+# a patent prior-art search; replace them with real values.
+# ==========================================================================
+
+# --------------------------------------------------------------------------
+# Session metadata
+# --------------------------------------------------------------------------
+session_metadata:
+  session_id: sess_2026-04-19_compute-allocation-priorart
+  started_at: 2026-04-19T08:00:00-07:00
+  completed_at: 2026-04-19T14:22:10-07:00
+  recipe: patent-brief
+  bundle_version: 0.3.0
+  preregistration_path: patent-prereg.yaml
+  preregistration_sha256: 7d6c5b4a392817061504f3e2d1c0b9a89786857473625140f3e2d1c0b9a89786
+
+# --------------------------------------------------------------------------
+# Search plan hash  -  SHA256 of the search-plan section committed at /plan
+# --------------------------------------------------------------------------
+# This is NOT the whole preregistration hash; it is the hash of just the
+# search_plan sub-block (patent-prereg.yaml: search_strategy;
+# policy-prereg.yaml: evidence_plan). Computed at /plan exit, recomputed
+# at /execute entry. Mismatch is a hard failure (override with
+# --allow-search-plan-hash-mismatch, which writes a warning below).
+search_plan_hash: 2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b
+
+# --------------------------------------------------------------------------
+# Database queries  -  every search executed
+# --------------------------------------------------------------------------
+# One entry per (database x query) pair. result_count is the total hits
+# the database returned (pre-screening); sources_retrieved below captures
+# what was actually reviewed.
+database_queries:
+  - query_id: Q01
+    database: google_patents           # uspto | google_patents | espacenet | pubmed | eric | ieee_xplore | arxiv | ...
+    query_string: '("compute allocation" OR "resource allocation") AND ("feedback" OR "closed loop") AND (agent OR LLM)'
+    executed_at: 2026-04-19T08:14:22-07:00
+    result_count: 317
+    query_hash: c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8
+    # ^ sha256 of the exact query string + database identifier, so
+    #   reviewers can verify the query was not tweaked between /plan
+    #   commitment and /execute run.
+  - query_id: Q02
+    database: uspto
+    query_string: '"dynamic compute budget" AND agent'
+    executed_at: 2026-04-19T09:02:10-07:00
+    result_count: 42
+    query_hash: d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7
+  - query_id: Q03
+    database: ieee_xplore
+    query_string: 'agent AND resource AND (adaptive OR online) AND allocation'
+    executed_at: 2026-04-19T09:40:55-07:00
+    result_count: 188
+    query_hash: e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6
+  - query_id: Q04
+    database: arxiv
+    query_string: 'cs.AI: "inference-time compute" AND allocation'
+    executed_at: 2026-04-19T10:11:03-07:00
+    result_count: 96
+    query_hash: f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5
+
+# --------------------------------------------------------------------------
+# Sources retrieved  -  every source actually opened and reviewed
+# --------------------------------------------------------------------------
+# relevance_tag is one of:
+#   primary       - directly anticipates a claim; blocks novelty
+#   supporting    - provides context; does not anticipate
+#   disconfirming - contradicts the novelty story (MUST be surfaced, not hidden)
+#   excluded      - retrieved then excluded on inclusion criteria
+sources_retrieved:
+  - citation_id: PA-001
+    found_via_query: Q01
+    identifier: US10,847,234
+    url_or_doi: https://patents.google.com/patent/US10847234
+    retrieved_at: 2026-04-19T08:22:44-07:00
+    relevance_tag: supporting
+    inclusion_decision:
+      included: true
+      rationale: |
+        Dynamic resource allocation for distributed systems; no feedback
+        loop or agent context. Useful as Category B (allocation without
+        feedback) for the claim chart.
+  - citation_id: PA-002
+    found_via_query: Q01
+    identifier: US11,234,567
+    url_or_doi: https://patents.google.com/patent/US11234567
+    retrieved_at: 2026-04-19T08:31:09-07:00
+    relevance_tag: supporting
+    inclusion_decision:
+      included: true
+      rationale: |
+        Agent-based resource management with static budget per task
+        type, not runtime feedback. Different teaching.
+  - citation_id: PA-014
+    found_via_query: Q03
+    identifier: 10.1109/ICDCS.2023.00421
+    url_or_doi: https://doi.org/10.1109/ICDCS.2023.00421
+    retrieved_at: 2026-04-19T11:02:55-07:00
+    relevance_tag: disconfirming
+    inclusion_decision:
+      included: true
+      rationale: |
+        IMPORTANT: describes an online feedback loop for allocating
+        compute to agents based on per-step reward signal. Overlap is
+        substantial; may anticipate independent claim 1. Flagged to
+        /critique for novelty stress-test. Not hiding this.
+  - citation_id: PA-019
+    found_via_query: Q04
+    identifier: arXiv:2310.04242
+    url_or_doi: https://arxiv.org/abs/2310.04242
+    retrieved_at: 2026-04-19T11:38:17-07:00
+    relevance_tag: excluded
+    inclusion_decision:
+      included: false
+      rationale: |
+        Published after the priority date assumed for this application;
+        fails inclusion criterion "publication_date <= 2024-02-01".
+
+# --------------------------------------------------------------------------
+# Coverage assessment  -  did we actually execute the search plan?
+# --------------------------------------------------------------------------
+coverage_assessment:
+  every_database_in_plan_queried: true
+  databases_planned: [google_patents, uspto, ieee_xplore, arxiv]
+  databases_queried: [google_patents, uspto, ieee_xplore, arxiv]
+  databases_skipped: []          # if non-empty, MUST appear in gaps_and_limitations
+  inclusion_criteria_applied_consistently: true
+  disconfirming_evidence_found: true
+  disconfirming_citation_ids: [PA-014]
+  # For policy-brief only: record stakeholder outreach status. Remove this
+  # sub-block for patent-brief and literature-review.
+  stakeholder_responses:
+    planned_contacts: 0
+    responses_received: 0
+    non_responses: 0
+    notes: |
+      N/A for patent-brief; retained as null for schema uniformity.
+
+# --------------------------------------------------------------------------
+# Gaps and limitations  -  documented search gaps, surfaced to the reader
+# --------------------------------------------------------------------------
+# Every item here becomes a bullet in the final brief's "Limitations"
+# section. Do not delete entries to make the search look more complete.
+gaps_and_limitations:
+  - id: G01
+    gap: |
+      Foreign-language patent filings (CN, JP, KR) were not searched.
+      Machine translation of Chinese patents in this space has known
+      gaps for agent-system terminology.
+    impact: |
+      Risk of unidentified prior art in CN/JP/KR filings. Recommend
+      engaging a foreign-associate search before international filing.
+    mitigation: deferred_to_expert_review
+  - id: G02
+    gap: |
+      GitHub and other non-patent, non-paper sources (blog posts,
+      technical reports) were not systematically searched.
+    impact: |
+      35 USC 102(a)(1) "otherwise available to the public" art could
+      exist as prior blog posts or open-source projects.
+    mitigation: spot_checked_top_3_github_repos_in_space
+
+# --------------------------------------------------------------------------
+# Artifacts  -  every file that /execute produced
+# --------------------------------------------------------------------------
+artifacts:
+  - path: /work/artifacts/prior_art_table.xlsx
+    sha256: 1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b
+    size_bytes: 48216
+    purpose: populated claim chart (4 independent claims x 40 references)
+  - path: /work/artifacts/evidence_summary.md
+    sha256: 2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c
+    size_bytes: 12188
+    purpose: narrative summary of prior-art landscape
+  - path: /work/artifacts/disconfirming_evidence.md
+    sha256: 3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d
+    size_bytes: 4602
+    purpose: dedicated treatment of PA-014 (disconfirming reference)

@@ -1,0 +1,77 @@
+# ==========================================================================
+# CONDA ENVIRONMENT TEMPLATE (for reproducibility)
+# ==========================================================================
+# Use this file when your analysis depends on packages that ship C extensions
+# or system libraries where conda-forge wheels matter more than PyPI wheels
+# (e.g., pymc, cartopy, rdkit, torch+CUDA, OR-Tools, GDAL, h5py against a
+# specific HDF5). For pure-Python stacks, `templates/requirements.in` is
+# lighter-weight and usually enough. See `templates/REPRODUCIBILITY.md`.
+#
+# WORKFLOW
+# --------
+#   1.  Edit this file to reflect top-level intent only (no version pins
+#       except the python pin below).
+#   2.  Lock it to an exact multi-platform solution:
+#
+#           conda-lock -f environment.yml -p osx-arm64 -p linux-64
+#
+#       (install conda-lock via `pipx install conda-lock` if missing.)
+#   3.  Commit BOTH this file (your declared intent) AND the generated
+#       `conda-lock.yml` (the exact pinned resolution) alongside the paper.
+#   4.  Reviewers reproduce with:
+#
+#           conda-lock install --name paper-env conda-lock.yml
+#
+#   5.  Record the sha256 of `conda-lock.yml` in execution-log.yaml under
+#       environment_capture.environment_file_digest.
+#
+# WHEN TO USE vs requirements.in
+# ------------------------------
+#   - Pure Python (numpy/pandas/sklearn/matplotlib only)  ->  requirements.in
+#   - C-extension heavy (torch, rdkit, pymc, GDAL, ...)   ->  environment.yml
+#   - Reviewers on mixed OSes, needs system libs          ->  environment.yml
+#   - Full-stack archival (LaTeX + fonts + code)          ->  Dockerfile.research
+# ==========================================================================
+
+name: paper-env
+
+channels:
+  - conda-forge
+  - nodefaults          # refuse the 'defaults' channel; conda-forge only,
+                        # for license clarity and better ARM/Linux coverage.
+
+dependencies:
+  # --- language runtime (pinned minor; let conda-lock pin the patch) -------
+  - python=3.11
+
+  # --- core scientific stack ------------------------------------------------
+  - numpy
+  - pandas
+  - scipy
+  - matplotlib
+  - scikit-learn
+  - statsmodels
+
+  # --- notebooks & workflow -------------------------------------------------
+  - jupyterlab
+  - ipykernel
+
+  # --- I/O & storage --------------------------------------------------------
+  - pyarrow             # parquet / feather
+  - openpyxl            # Excel, for patent/policy claim charts
+
+  # --- quality-of-life ------------------------------------------------------
+  - tqdm
+  - pyyaml
+
+  # --- pip-only sub-section -------------------------------------------------
+  # List here ONLY packages not available on conda-forge, or where the
+  # PyPI release is authoritative. conda-lock will include these in the
+  # locked solution.
+  - pip
+  - pip:
+      # Example:
+      # - seaborn==0.13.2
+      # - arviz
+      # - some-internal-package @ git+https://github.com/org/repo.git@v1.2.3
+      []

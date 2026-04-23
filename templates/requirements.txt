@@ -1,0 +1,30 @@
+# ==========================================================================
+# requirements.txt  -  GENERATED LOCKFILE (do not hand-edit)
+# ==========================================================================
+# This file should be produced from `templates/requirements.in` by
+# `pip-compile` (pip-tools) or `uv pip compile`. Do NOT edit by hand;
+# re-run the compile step and commit the result.
+#
+# Generate with one of:
+#     pip-compile requirements.in --output-file requirements.txt
+#     uv pip compile requirements.in -o requirements.txt
+#
+# Install into a fresh venv with one of:
+#     pip-sync requirements.txt
+#     uv pip sync requirements.txt
+#
+# Every line below (once generated) will be an EXACT pin with a hash, e.g.:
+#     numpy==1.26.4 \
+#         --hash=sha256:abcd...
+#
+# That hash-checking mode is what buys you reproducibility:
+#   - If PyPI is compromised or a release is yanked, the install fails
+#     closed rather than installing a different artifact.
+#   - Reviewers get byte-identical wheels to the ones used at /execute.
+#
+# Record the sha256 of this file (after it is regenerated) in
+# execution-log.yaml under environment_capture.environment_file_digest.
+# ==========================================================================
+#
+# This placeholder is intentionally empty. Run the compile command above
+# before `/execute` begins; commit the generated result.

@@ -1,0 +1,29 @@
+# Scientific Paper Bundle - Python Dependencies
+
+# Core plotting and visualization
+matplotlib>=3.8.0
+seaborn>=0.13.0
+
+# LaTeX integration
+tikzplotlib>=0.10.1
+
+# PDF manipulation
+pypdf>=4.0.0
+
+# Scientific plotting styles
+SciencePlots>=2.1.0
+
+# HTTP requests (for DOI lookup, etc.)
+requests>=2.31.0
+
+# BibTeX parsing
+bibtexparser>=1.4.0
+
+# Optional: NumPy (usually installed with matplotlib but explicit)
+numpy>=1.24.0
+
+# Optional: For enhanced figure generation
+# Uncomment if needed:
+# pillow>=10.0.0          # Image processing
+# scipy>=1.11.0           # Scientific computing
+# pandas>=2.1.0           # Data structures (for data processing)

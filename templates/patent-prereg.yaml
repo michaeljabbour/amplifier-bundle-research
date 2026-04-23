@@ -1,0 +1,121 @@
+# ==========================================================================
+# PATENT PRE-REGISTRATION TEMPLATE
+# ==========================================================================
+# Specialization of templates/preregistration.yaml for the patent-brief
+# recipe. Pre-registration discipline applies to patent work: the prior-art
+# search plan must be hash-locked before the search begins so that post-hoc
+# claim narrowing is visible as an amendment rather than a silent edit.
+#
+# Diff from the base template:
+#   - predictions         -> claim_predictions
+#   - analysis_plan       -> prior_art_search_plan
+#   - disconfirmation     -> novelty_threshold_criteria
+# Retained unchanged:
+#   - metadata, question, scope, honest_pivot_clause, amendments, sha256
+# ==========================================================================
+
+metadata:
+  created_at: <ISO-8601 timestamp>
+  created_by: <inventor / attorney / agent identifier>
+  recipe: patent-brief
+  bundle_version: 0.1.0
+  session_id: <amplifier session id>
+
+# --------------------------------------------------------------------------
+# The sharpened question, carried forward from /question
+# --------------------------------------------------------------------------
+question:
+  one_line: <what the invention is, in a single sentence>
+  scope:
+    applies_to: <technical field / problem domain / intended use>
+    does_not_apply_to: <explicitly out-of-scope embodiments>
+
+# --------------------------------------------------------------------------
+# Claim predictions — what the invention is expected to do, locked before
+# the prior-art search begins
+# --------------------------------------------------------------------------
+claim_predictions:
+  - id: C1
+    statement: <what the claimed invention accomplishes>
+    intended_claim_type: <independent method | independent system | CRM>
+    must_distinguish_from:
+      - <prior-art category or known reference the claim must differ from>
+      - <another category the claim must differ from>
+    enablement_demonstration:
+      what_will_be_shown: <the working example or reduction to practice>
+      measurable_via: <benchmark, test rig, empirical metric>
+      threshold: <pass/fail criterion for enablement>
+  - id: C2
+    statement: <second claim prediction>
+    intended_claim_type: <independent | dependent-of-C1>
+    must_distinguish_from: []
+    enablement_demonstration:
+      what_will_be_shown:
+      measurable_via:
+      threshold:
+
+# --------------------------------------------------------------------------
+# Prior-art search plan — locked before search begins
+# --------------------------------------------------------------------------
+prior_art_search_plan:
+  databases:
+    - <USPTO Patent Full-Text and Image Database (PatFT)>
+    - <USPTO Patent Application Full-Text Database (AppFT)>
+    - <Espacenet (EPO)>
+    - <Google Patents>
+    - <Google Scholar / IEEE Xplore / ACM DL for non-patent literature>
+    - <domain-specific databases, e.g., arXiv for CS inventions>
+  search_terms:
+    primary: [<term 1>, <term 2>]
+    synonyms_and_variants: [<variant 1>, <variant 2>]
+    cpc_classes: [<CPC class 1>, <CPC class 2>]
+    ipc_classes: [<IPC class 1>]
+  date_range:
+    from: <earliest publication date to include>
+    to: <search cutoff date>
+  inclusion_criteria:
+    - <criterion for a reference being relevant to novelty>
+    - <criterion for a reference being relevant to non-obviousness>
+  exclusion_criteria:
+    - <criterion for excluding a hit, e.g., different technical field>
+    - <criterion for excluding, e.g., withdrawn application>
+  novelty_threshold_criteria:
+    exact_anticipation: <conditions under which a single reference kills the claim>
+    obviousness_bar: <conditions under which a combination renders claim obvious>
+    minimum_references_reviewed: 3  # per independent claim, per patent-brief-template
+  reviewer:
+    role: <attorney | patent agent | technical reviewer>
+    independence_requirement: <not an inventor on this application>
+
+# --------------------------------------------------------------------------
+# Disconfirmation — what prior-art findings would require honest pivot
+# --------------------------------------------------------------------------
+disconfirmation:
+  - <a reference that fully anticipates claim C1>
+  - <a combination of two references that renders C1 obvious under KSR>
+  - <enablement failure: working example does not meet its threshold>
+
+# --------------------------------------------------------------------------
+# Honest-pivot clause — the explicit commitment
+# --------------------------------------------------------------------------
+honest_pivot_clause: |
+  If the prior-art search reveals anticipating or rendering-obvious
+  references, or if enablement cannot be demonstrated, we will:
+  1. Narrow the claim and document the narrowing as a timestamped
+     amendment to this pre-registration (not an edit in place).
+  2. Not quietly drop claim language to avoid the reference; the
+     amendment log must cite the reference that triggered the narrowing.
+  3. Abandon the claim if narrowing would leave it commercially or
+     technically trivial, and record the abandonment explicitly.
+  4. Label any claim element added after initial hash-lock as
+     [post-search] in the patent brief.
+
+# --------------------------------------------------------------------------
+# Amendment log — timestamped additions only, never deletions
+# --------------------------------------------------------------------------
+amendments: []   # appended to via /plan --amend, never edited in place
+
+# --------------------------------------------------------------------------
+# Self-witnessing hash — populated by /plan on exit
+# --------------------------------------------------------------------------
+sha256: <computed at hash-lock time, before prior-art search begins>

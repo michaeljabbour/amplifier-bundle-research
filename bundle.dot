@@ -1,0 +1,79 @@
+// Research bundle repository: a collection of AI agents and instructions for conducting rigorous academic and scientific research — from hypothesis design through statistics, writing, citations, and venue formatting.
+digraph research {
+    rankdir=LR
+    fontname="Helvetica"
+    fontsize=12
+    label="Research Bundle — Academic & Scientific Research Toolkit\nv0.2.0 · A team of AI specialists for rigorous research workflows"
+    labelloc=t
+    labeljust=c
+    nodesep=0.6
+    ranksep=0.7
+    bgcolor="white"
+    source_hash="53f2318092cb8acf41bb911c596b34201612735fb65a93e7e863ab8a73405163"
+
+    node [fontname="Helvetica", fontsize=11, style="filled,rounded"]
+    edge [fontname="Helvetica", fontsize=9]
+
+    root_research [label="Research Toolkit (main bundle)\nresearch v0.2.0\n0 tools · 0 agents\n~3181 tok aggregate", shape=box, fillcolor="#80cbc4", style="filled,rounded,bold", penwidth=2]
+
+    subgraph cluster_standalones {
+        label="Standalone Bundles\n(independent toolkits that build on this one)"
+        style="filled"
+        fillcolor="#f9f9f9"
+        color="#999999"
+
+        sta_dev [label="Developer Workspace\ndev", shape=box, fillcolor="#80cbc4", style="filled,rounded"]
+    }
+
+    subgraph cluster_agents {
+        label="Agents\n(AI specialists, each an expert in one research task)"
+        style="filled"
+        fillcolor="#f9f9f9"
+        color="#999999"
+
+        agt_citation_manager [label="Citations & References Expert\ncitation-manager\n~235 tok desc", shape=box, fillcolor="#c8e6c9", style="filled,rounded"]
+        agt_figure_designer [label="Figures & Charts Designer\nfigure-designer\n~276 tok desc", shape=box, fillcolor="#c8e6c9", style="filled,rounded"]
+        agt_honest_critic [label="Candid Peer Reviewer\nhonest-critic\n~235 tok desc", shape=box, fillcolor="#c8e6c9", style="filled,rounded"]
+        agt_hypothesis_designer [label="Hypothesis Designer\nhypothesis-designer\n~202 tok desc", shape=box, fillcolor="#c8e6c9", style="filled,rounded"]
+        agt_methodologist [label="Study Methodology Expert\nmethodologist\n~232 tok desc", shape=box, fillcolor="#c8e6c9", style="filled,rounded"]
+        agt_preregistration_reviewer [label="Pre-Registration Reviewer\npreregistration-reviewer\n~244 tok desc", shape=box, fillcolor="#c8e6c9", style="filled,rounded"]
+        agt_research_coordinator [label="Research Project Coordinator\nresearch-coordinator\n~240 tok desc", shape=box, fillcolor="#c8e6c9", style="filled,rounded"]
+        agt_statistician [label="Statistical Analysis Expert\nstatistician\n~231 tok desc", shape=box, fillcolor="#c8e6c9", style="filled,rounded"]
+        agt_technical_writer [label="Academic Writer\ntechnical-writer\n~259 tok desc", shape=box, fillcolor="#c8e6c9", style="filled,rounded"]
+        agt_venue_formatter [label="Journal & Conference Formatter\nvenue-formatter\n~239 tok desc", shape=box, fillcolor="#c8e6c9", style="filled,rounded"]
+    }
+
+    subgraph cluster_context {
+        label="Context Files\n(shared guidance automatically loaded with the bundle)"
+        style="filled"
+        fillcolor="#f9f9f9"
+        color="#999999"
+
+        ctx_instructions_md [label="Core Research Instructions\ninstructions.md\n~2490 tok", shape=box, fillcolor="#e1bee7", style="filled,rounded"]
+    }
+
+    subgraph cluster_legend {
+        label="Legend — what the shapes and colors mean"
+        style="filled"
+        fillcolor="white"
+        color="#cccccc"
+        fontsize=9
+
+        leg_root [label="main bundle", shape=box, fillcolor="#80cbc4", style="filled,rounded,bold", fontsize=9]
+        leg_behavior [label="behavior pack", shape=box, fillcolor="#e0f2f1", style="filled,rounded", fontsize=9]
+        leg_agent [label="AI specialist", shape=box, fillcolor="#c8e6c9", style="filled,rounded", fontsize=9]
+        leg_module [label="code module", shape=box, fillcolor="#bbdefb", style="filled,rounded", fontsize=9]
+        leg_provider [label="AI provider", shape=box, fillcolor="#e0e0e0", style="filled,rounded", fontsize=9]
+        leg_context [label="instructions file", shape=box, fillcolor="#e1bee7", style="filled,rounded", fontsize=9]
+        leg_standalone [label="standalone toolkit", shape=box, fillcolor="#80cbc4", style="filled,rounded", fontsize=9]
+        leg_experiment [label="experimental context", shape=box, fillcolor="#e1bee7", style="filled,rounded", fontsize=9]
+        leg_ext_cost [label="external (adds cost)", shape=box, fillcolor="#80cbc4", style="dashed", color="red", penwidth=2, fontsize=9]
+        leg_ext_muted [label="external (no cost)", shape=box, fillcolor="#f5f5f5", style="dashed", fontsize=9]
+    }
+
+    disclaimer [label="About the numbers:\nToken estimates use ~4 characters per token.\nSolid border = part of this repo (counted in totals).\nDashed red border = lives elsewhere, still adds cost.\nDashed grey border = lives elsewhere, free to reference.\nNot included: costs from sub-sessions or runtime-only behavior.", shape=note, fillcolor="#eceff1", style="filled", fontsize=9]
+
+
+    root_research -> ctx_instructions_md [style=dotted, color=purple]
+    sta_dev -> root_research [label="extends", style=dashed]
+}

@@ -1,0 +1,137 @@
+name: benchmark-paper
+version: 0.1.0
+description: |
+  Benchmark evaluation paper specialized for dataset releases, method comparisons,
+  and performance evaluations. Includes protocol definition, fairness checks,
+  and reproducibility appendix.
+
+# ---------------------------------------------------------------------------
+# Mode sequence — full six-mode pipeline, evaluation-focused
+# ---------------------------------------------------------------------------
+modes:
+  - id: question
+    purpose: Clarify what is being evaluated and success criteria
+    persona_hint: |
+      Expect Persona B (ML researcher, data scientist, or benchmarking engineer).
+      Ask what baselines are being compared, what metrics matter, and what would
+      constitute a "successful" evaluation.
+  - id: plan
+    purpose: Lock benchmark protocol, baselines, and statistical tests
+    emphasis:
+      - protocol_definition  # evaluation procedure, exactly reproducible
+      - baseline_selection  # which methods/models are included and why
+      - metrics_rationale  # which metrics measure what
+      - statistical_tests  # significance testing approach
+      - random_seed_strategy  # reproducibility locks
+  - id: execute
+    purpose: Run benchmarks with pinned seeds and collect results
+    tools:
+      - benchmark-runner:
+          seed_management: pinned
+          log_environment: true
+          capture_variance: true
+      - results-aggregator:
+          format: structured
+      - performance-plotter:
+          quality_check: true
+  - id: critique
+    purpose: Fairness, validity, and generalization checks
+    emphasis:
+      - baseline_fairness  # were baselines tuned equally? hyperparameters comparable?
+      - metric_validity  # do metrics measure what's claimed?
+      - statistical_power  # confidence intervals on comparisons
+      - generalization_claims  # do results apply broadly or are they narrow?
+      - reproducibility_checklist  # seeds, versions, hardware documented?
+  - id: draft
+    purpose: Benchmark paper structure
+    template: templates/benchmark-skeleton.md
+    sections:
+      - abstract
+      - introduction
+      - benchmark-protocol
+      - baselines-and-methods
+      - experimental-setup
+      - results
+      - analysis
+      - discussion
+      - reproducibility-appendix
+  - id: publish
+    purpose: Benchmark-ready publication
+    output_formats: [pdf, docx]
+    artifacts:
+      - paper.pdf
+      - results-table.xlsx
+      - results-figures/
+      - reproducibility-checklist.yaml
+      - preregistration.yaml
+      - code-snapshot/  # if applicable
+
+# ---------------------------------------------------------------------------
+# Defaults — overridable by user
+# ---------------------------------------------------------------------------
+defaults:
+  honest_pivot: true
+  exploratory_labeling: true
+  preregistration_required: true
+  citation_style: apa
+  random_seed_pinning: required  # critical for reproducibility
+
+# ---------------------------------------------------------------------------
+# Publish gates — enforced at /publish entry. Session refuses to run /publish
+# until these conditions are satisfied.
+# ---------------------------------------------------------------------------
+publish_gates:
+  # -- v0.3 workflow gates ---------------------------------------------------
+  critique_required:
+    enabled: true
+    description: |
+      /publish refuses to execute until at least one /critique pass has produced
+      a critique_report artifact for the current draft. This prevents publishing
+      work that has not been subjected to structured self-review.
+    enforcement: block
+    bypass: "--no-critique-gate"
+    bypass_warning: |
+      Publishing without a critique pass. The output's metadata will record
+      that critique was bypassed. This is appropriate for informal drafts and
+      internal-use documents, but not recommended for external publication.
+    artifact_required: critique.yaml  # produced by /critique mode; lives in .amplifier/sessions/<session>/
+
+  honest_pivot_acknowledged:
+    enabled: true
+    description: |
+      If /execute produced findings that diverge from the pre-registration,
+      /publish requires the user has acknowledged each divergence via the
+      honest-pivot behavior (either labeled exploratory, amended with
+      timestamp, or disabled with --no-honest-pivot flag).
+    enforcement: block
+    bypass: null  # Cannot be bypassed — architectural guarantee
+
+  # -- Domain-specific quality gates ----------------------------------------
+  quality_gates:
+    - name: all_baselines_complete
+      condition: all announced baselines have results; missing baselines documented
+      on_fail: block
+    - name: reproducibility_checklist
+      condition: seeds, versions, hardware, and environment fully documented
+      on_fail: block
+    - name: statistical_reporting
+      condition: all comparisons include confidence intervals or significance tests
+      on_fail: warn
+    - name: fairness_assessment
+      condition: baselines reviewed for comparable tuning effort
+      on_fail: block
+    - name: metric_justification
+      condition: each metric linked to evaluation goal
+      on_fail: warn
+
+# ---------------------------------------------------------------------------
+# Persona detection hints
+# ---------------------------------------------------------------------------
+persona_signals:
+  persona_b_indicators:
+    - user is comparing multiple methods or models
+    - user names evaluation metrics or baselines
+    - user has results or code ready
+  persona_c_indicators:
+    - user invokes /critique on a benchmark paper
+    - user requests reproducibility review

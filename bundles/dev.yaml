@@ -1,0 +1,53 @@
+---
+bundle:
+  name: research-dev
+  version: 0.2.0
+  description: |
+    Local-development standalone for amplifier-bundle-research. Composes the
+    root research bundle with an Anthropic provider so the bundle can be
+    exercised from a local checkout without publishing.
+
+    Usage from the repo root:
+      amplifier run --bundle ./bundles/dev.yaml "your prompt here"
+
+    The local tool-paperbanana module resolves via the relative source path
+    declared in behaviors/paperbanana.md. For production/consumer use, the
+    root bundle.md should be loaded via:
+      amplifier bundle add git+https://github.com/michaeljabbour/amplifier-bundle-research@main
+
+includes:
+  # The root bundle (loaded relative to this file's directory).
+  - bundle: ../bundle.md
+
+  # A provider — swap to a different foundation provider bundle as needed.
+  # Candidates: anthropic-claude, openai-gpt, azure-openai, ollama.
+  # Uses foundation: namespace (already established by the root bundle's
+  # foundation include above — avoids re-fetching foundation from git).
+  - bundle: foundation:providers/anthropic-claude
+---
+
+# Research Bundle — Dev Standalone
+
+This bundle exists so the research bundle can be tested locally without a
+published release. It is not intended for consumer use — it hardcodes a
+provider choice that consumers should make for themselves.
+
+## Quick smoke test
+
+```bash
+# From the repo root
+amplifier run --bundle ./bundles/dev.yaml "Run /question on: 'Does reflection improve LLM reasoning?'"
+```
+
+## First functional recipe run
+
+Per `docs/HANDOFF.md`, the recommended first functional test is:
+
+```bash
+amplifier run --bundle ./bundles/dev.yaml \
+  --recipe patent-brief \
+  "Novel rolling-ROI control for AI agent sessions"
+```
+
+This exercises the full six-mode pipeline end-to-end with a real persona-A
+input. Any agent-routing or mode-handoff issues will surface here.

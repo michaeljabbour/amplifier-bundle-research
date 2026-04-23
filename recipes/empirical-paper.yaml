@@ -1,0 +1,157 @@
+name: empirical-paper
+version: 0.1.0
+description: |
+  Full-rigor empirical research paper for conference and journal submission.
+  Complete pre-registration, methodology lockdown, and honest-pivot enforcement.
+  Produces IMRAD-structured, venue-ready output with CONSORT/STROBE compliance.
+
+# ---------------------------------------------------------------------------
+# Mode sequence — full six-mode pipeline with strict controls
+# ---------------------------------------------------------------------------
+modes:
+  - id: question
+    purpose: Sharpen research question into testable hypothesis
+    persona_hint: |
+      Expect Persona B (researcher, PI, or experienced analyst). Ask for the core
+      claim, the mechanism, and what evidence would convince you the claim is false.
+  - id: plan
+    purpose: SHA256-locked pre-registration
+    emphasis:
+      - hypothesis_specificity  # directional and quantified
+      - methodology_details  # design choices locked before data collection
+      - statistical_plan  # primary tests, MDEs, multiple comparison correction
+      - honest_pivot_clause  # what counts as deviation and will be flagged
+    special_behavior:
+      - sha256_hash_preregistration: true
+      - sign_commitment_hash: true
+  - id: execute
+    purpose: Run pre-registered analysis and generate figures
+    tools:
+      - analysis-executor:
+          enforce_preregistration: true
+          log_deviations: true
+      - figure-generator:
+          quality_check: true
+      - statistics-reporter:
+          format: apa
+  - id: critique
+    purpose: Full methodology review with CONSORT/STROBE scoring
+    emphasis:
+      - methodology_rigor  # CONSORT/STROBE compliance
+      - statistical_validity  # assumptions, power, multiple comparisons
+      - honest_pivot_enforcement  # flag deviations from pre-registration
+      - exploratory_labeling  # auto-tag unregistered findings
+      - overclaim_detection  # match claims to evidence strength
+  - id: draft
+    purpose: Venue-ready IMRAD structure
+    template: templates/imrad-skeleton.latex
+    sections:
+      - abstract
+      - introduction
+      - methods
+      - results
+      - discussion
+      - limitations
+      - references
+    post_processing:
+      - exploratory_findings_labeled: true
+      - preregistration_deviation_flagged: true
+  - id: publish
+    purpose: Venue submission ready
+    venue: configurable  # neurips, icml, nature, etc.
+    output_formats: [latex, docx, pdf]
+    artifacts:
+      - paper.latex
+      - paper.pdf
+      - preregistration.yaml
+      - preregistration.hash
+      - supplement.pdf  # methodology, extended figures
+      - analysis-log.txt  # deviation log
+
+# ---------------------------------------------------------------------------
+# Defaults — overridable by user
+# ---------------------------------------------------------------------------
+defaults:
+  honest_pivot: true
+  exploratory_labeling: true
+  preregistration_required: true
+  preregistration_venue: osf  # Open Science Framework
+  citation_style: apa
+  double_blind_ready: true
+
+# ---------------------------------------------------------------------------
+# Publish gates — enforced at /publish entry. Session refuses to run /publish
+# until these conditions are satisfied.
+# ---------------------------------------------------------------------------
+publish_gates:
+  # -- v0.3 workflow gates ---------------------------------------------------
+  critique_required:
+    enabled: true
+    description: |
+      /publish refuses to execute until at least one /critique pass has produced
+      a critique_report artifact for the current draft. This prevents publishing
+      work that has not been subjected to structured self-review.
+    enforcement: block
+    bypass: "--no-critique-gate"
+    bypass_warning: |
+      Publishing without a critique pass. The output's metadata will record
+      that critique was bypassed. This is appropriate for informal drafts and
+      internal-use documents, but not recommended for external publication.
+    artifact_required: critique.yaml  # produced by /critique mode; lives in .amplifier/sessions/<session>/
+
+  honest_pivot_acknowledged:
+    enabled: true
+    description: |
+      If /execute produced findings that diverge from the pre-registration,
+      /publish requires the user has acknowledged each divergence via the
+      honest-pivot behavior (either labeled exploratory, amended with
+      timestamp, or disabled with --no-honest-pivot flag).
+    enforcement: block
+    bypass: null  # Cannot be bypassed — architectural guarantee
+
+  # -- Domain-specific quality gates ----------------------------------------
+  quality_gates:
+    - name: methodology_score
+      condition: scholar-eval CONSORT/STROBE score ≥4.0/5.0
+      on_fail: block
+    - name: statistical_validity
+      condition: all statistical assumptions checked and reported
+      on_fail: block
+    - name: honest_pivot_resolution
+      condition: all deviations from pre-registration either authorized or flagged
+      on_fail: block
+    - name: exploratory_labeling
+      condition: all unregistered findings labeled "exploratory" in text
+      on_fail: block
+    - name: overclaim_detection
+      condition: no unqualified claims beyond evidence strength
+      on_fail: warn
+
+# ---------------------------------------------------------------------------
+# Behavior enforcement
+# ---------------------------------------------------------------------------
+behaviors:
+  honest_pivot:
+    enforcement: strict  # deviation causes explicit flag, not silent rewrite
+    surfaces:
+      - preregistration comparison table
+      - deviation callouts in Results
+      - note in Discussion
+  exploratory_labeling:
+    enforcement: automatic  # any finding not in pre-registration gets tagged
+    surfaces:
+      - inline labels in Results: "exploratory finding"
+      - subsection in Discussion: "Exploratory analyses"
+      - metadata in submission package
+
+# ---------------------------------------------------------------------------
+# Persona detection hints
+# ---------------------------------------------------------------------------
+persona_signals:
+  persona_b_indicators:
+    - user references hypothesis, design, or analysis plan
+    - user has data or experimental code ready
+    - user names a venue (NeurIPS, Nature, etc.)
+  persona_c_indicators:
+    - user invokes /critique on a completed empirical paper
+    - user requests CONSORT/STROBE scoring

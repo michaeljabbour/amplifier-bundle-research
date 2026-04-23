@@ -1,0 +1,143 @@
+name: literature-review
+version: 0.1.0
+description: |
+  Structured literature review or systematic review. Designed for researchers,
+  policy analysts, and clinicians to systematically search, extract, and synthesize
+  evidence. Includes PRISMA compliance checklist and multi-database search logging.
+
+# ---------------------------------------------------------------------------
+# Mode sequence — full six-mode pipeline, search-heavy
+# ---------------------------------------------------------------------------
+modes:
+  - id: question
+    purpose: Sharpen review question into answerable scope
+    persona_hint: |
+      Expect Persona A or B. Ask what you want to know, what populations or
+      contexts matter, and what evidence sources count. Define inclusion/exclusion
+      criteria together.
+  - id: plan
+    purpose: Lock search strategy, databases, and synthesis framework
+    emphasis:
+      - search_terms  # keywords, MeSH, syntax for each database
+      - databases  # PubMed, ERIC, Web of Science, Google Scholar, others
+      - inclusion_exclusion_criteria  # population, intervention, comparator, outcomes, study design
+      - data_extraction_template  # what gets recorded from each paper
+      - synthesis_framework  # narrative, meta-analysis, evidence mapping, realist synthesis
+  - id: execute
+    purpose: Systematic search and evidence extraction
+    tools:
+      - database-search:
+          sources: [pubmed, eric, web-of-science, google-scholar, domain-specific]
+          log_search_syntax: true
+          capture_hit_counts: true
+      - screening-tracker:
+          dual_review: optional
+      - data-extraction:
+          template: configurable
+      - evidence-mapper:
+          visualization: true
+  - id: critique
+    purpose: PRISMA compliance and synthesis quality
+    emphasis:
+      - prisma_compliance  # 27-item PRISMA checklist
+      - search_completeness  # multiple databases, gray literature, forward/backward citation
+      - extraction_consistency  # extraction reliability check
+      - synthesis_quality  # are conclusions proportionate to evidence base?
+      - bias_assessment  # publication bias, study quality scoring
+  - id: draft
+    purpose: Structured literature review or systematic review
+    template: templates/systematic-review-skeleton.md
+    sections:
+      - abstract  # structured abstract
+      - introduction
+      - methods  # search strategy, inclusion criteria, databases
+      - results  # study selection flow, study characteristics, extraction table
+      - evidence-synthesis  # narrative or meta-analytic
+      - discussion
+      - limitations
+      - conclusions
+      - prisma-checklist-appendix
+  - id: publish
+    purpose: Journal-ready systematic review
+    output_formats: [pdf, docx]
+    artifacts:
+      - systematic-review.pdf
+      - study-characteristics-table.xlsx
+      - extraction-data.xlsx
+      - prisma-checklist.yaml
+      - search-strategy-log.txt
+      - evidence-map-visualization.png
+
+# ---------------------------------------------------------------------------
+# Defaults — overridable by user
+# ---------------------------------------------------------------------------
+defaults:
+  honest_pivot: false  # not applicable (synthesis, not testing)
+  exploratory_labeling: false  # not applicable
+  preregistration_required: true
+  preregistration_venue: osf  # Open Science Framework
+  citation_style: apa
+  review_type: systematic  # or narrative
+
+# ---------------------------------------------------------------------------
+# Publish gates — enforced at /publish entry. Session refuses to run /publish
+# until these conditions are satisfied.
+# ---------------------------------------------------------------------------
+publish_gates:
+  # -- v0.3 workflow gates ---------------------------------------------------
+  critique_required:
+    enabled: true
+    description: |
+      /publish refuses to execute until at least one /critique pass has produced
+      a critique_report artifact for the current draft. This prevents publishing
+      work that has not been subjected to structured self-review.
+    enforcement: block
+    bypass: "--no-critique-gate"
+    bypass_warning: |
+      Publishing without a critique pass. The output's metadata will record
+      that critique was bypassed. This is appropriate for informal drafts and
+      internal-use documents, but not recommended for external publication.
+    artifact_required: critique.yaml  # produced by /critique mode; lives in .amplifier/sessions/<session>/
+
+  honest_pivot_acknowledged:
+    enabled: true  # Fires only if /plan produced a pre-registration; skip-safe otherwise.
+    description: |
+      If /execute produced findings that diverge from the pre-registration,
+      /publish requires the user has acknowledged each divergence via the
+      honest-pivot behavior (either labeled exploratory, amended with
+      timestamp, or disabled with --no-honest-pivot flag).
+    enforcement: block
+    bypass: null  # Cannot be bypassed — architectural guarantee
+
+  # -- Domain-specific quality gates ----------------------------------------
+  quality_gates:
+    - name: prisma_checklist
+      condition: ≥24/27 PRISMA items addressed (or flagged as N/A)
+      on_fail: warn
+    - name: multi_database_search
+      condition: ≥2 major databases searched
+      on_fail: block
+    - name: extraction_table_complete
+      condition: data extraction table covers all included studies
+      on_fail: block
+    - name: search_log_documented
+      condition: search syntax and hit counts documented for all databases
+      on_fail: warn
+    - name: synthesis_quality
+      condition: synthesis method matches scope (narrative vs. meta-analytic)
+      on_fail: warn
+
+# ---------------------------------------------------------------------------
+# Persona detection hints
+# ---------------------------------------------------------------------------
+persona_signals:
+  persona_a_indicators:
+    - user wants to know "what does the research say about X?"
+    - user is not conducting primary research
+    - user wants a comprehensive overview
+  persona_b_indicators:
+    - user references inclusion/exclusion criteria or PRISMA
+    - user plans data extraction and meta-analysis
+  persona_c_indicators:
+    - user invokes /critique on a completed literature review
+    - user requests PRISMA compliance scoring
