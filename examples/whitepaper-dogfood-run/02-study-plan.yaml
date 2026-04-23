@@ -1,0 +1,273 @@
+# =========================================================================
+# /study-plan artifact — hash-locked pre-registration for white-paper
+# =========================================================================
+# Conceptual role: this is the "locked methodology" for the WHITE PAPER
+# itself. Because the paper is about a capability claim (not an
+# empirical experiment with data), the preregistration locks:
+#   (a) what evidence sources will be cited and how they will be selected
+#   (b) what comparisons will be made and against what baselines
+#   (c) what would count as disconfirmation
+#   (d) the honest-pivot clause for mid-draft scope changes
+#
+# The research-coordinator routes natural-language "plan" requests here
+# even though the slash command is /study-plan (not /plan) — the latter
+# is claimed by amplifier-bundle-modes.
+# =========================================================================
+
+metadata:
+  created_at: 2026-04-23T07:42:00-04:00
+  created_by: research-coordinator (routing) + methodologist + preregistration-reviewer
+  recipe: white-paper
+  bundle_version: 0.4.0
+  session_id: e623279d-44ef-458d-b7b7-ddc8f73e105c
+  upstream_artifact: output/whitepaper-run/01-question.yaml
+  upstream_artifact_sha256: <will be filled at seal time>
+
+# -------------------------------------------------------------------------
+# The carried-forward question (copy of one_line_thesis for self-containment)
+# -------------------------------------------------------------------------
+question:
+  one_line: |
+    For a patent attorney drafting a provisional or non-provisional utility
+    application, amplifier-bundle-research v0.4.0 produces a defensible
+    first-pass disclosure in less reviewer-burdened time than a
+    raw-LLM-plus-checklist baseline, without reducing claim scope beyond
+    what the attorney would have chosen manually.
+  scope:
+    applies_to: US utility patent applications drafted by practitioners
+    out_of_scope: design patents, plant patents, PCT national phase,
+                  litigation-phase claim construction, trade-secret matters
+
+# -------------------------------------------------------------------------
+# Evidence-gathering strategy (white-paper recipe /execute phase)
+# -------------------------------------------------------------------------
+evidence_plan:
+
+  # Evidence class A — discipline-gap evidence for the problem-statement
+  A_discipline_gap:
+    intent: |
+      Establish that the "defensibility craft" patent attorneys practice
+      maps onto the scientific-rigor craft the bundle encodes, and that
+      commodity LLM usage leaks discipline in predictable ways.
+    sources:
+      - type: USPTO-published guidance
+        items:
+          - MPEP § 2100 (patentability, 37 CFR 1.56 duty of candor)
+          - MPEP § 2163 (enablement / written description, § 112(a))
+          - MPEP § 2141 (obviousness / § 103, Graham v. Deere factors)
+      - type: academic
+        items:
+          - Lemley & Shapiro on patent hold-up and claim scope
+          - Nosek et al. on pre-registration in empirical science
+            (analogical support, not direct evidence)
+      - type: practitioner_commentary
+        items:
+          - IPWatchdog, Patently-O posts on AI-drafted application risks
+          - 2024-2025 USPTO AI-assistance guidance (registration of AI
+            use in prosecution)
+    selection_criteria: |
+      Prefer primary USPTO rule sources over secondary coverage.
+      Analogical scientific-rigor sources cited ONLY to support the
+      conceptual parallel, never to substitute for patent-specific
+      authority.
+
+  # Evidence class B — competitive landscape
+  B_competitive:
+    intent: |
+      Fair and non-straw-manned comparison against the four classes of
+      tools the thesis positions against.
+    comparators:
+      - class_1_ip_management:
+          names: [PatSnap, Anaqua, Clarivate IP Management]
+          how_assessed: vendor documentation + G2/Capterra reviews + own
+            published feature matrices
+          honest_framing: |
+            These are portfolio/docket management, NOT drafting tools.
+            Compared only on the dimension of "does the workflow leave
+            an auditable methodology trail?"
+      - class_2_ai_drafting:
+          names: [Rowan Patents, Solve Intelligence, ClaimMaster,
+                  Patent Bots]
+          how_assessed: public product pages + recorded demos + available
+            third-party reviews as of 2026-04
+          honest_framing: |
+            These DO generate filing-ready prose. The comparison is
+            honest: they optimize for output quality; the bundle
+            optimizes for methodology discipline + output quality.
+            Assume the output-quality gap is narrow and not the
+            distinguishing axis.
+      - class_3_raw_llm:
+          names: [ChatGPT o1/o3, Claude Sonnet/Opus, Gemini 2.5 Pro]
+          how_assessed: public capability documentation; NO comparative
+            benchmarking performed for this paper
+          honest_framing: |
+            Baseline reference, not a rival product. Strength is
+            accessibility and zero setup; weakness is the attorney must
+            carry all discipline manually.
+      - class_4_internal_checklists:
+          names: [firm-internal templates, MPEP checklists]
+          how_assessed: review of publicly published firm templates
+            (e.g., via AIPLA resources) where available
+          honest_framing: |
+            The tacit comparison. Hardest to assess fairly because
+            firm-internal artifacts are rarely published.
+    comparison_matrix_rules:
+      - every row must have an entry for BOTH strengths and weaknesses
+      - our-approach row is subject to the same weakness requirement
+      - no superlatives without a cited number
+      - "best-in-class", "industry-leading", "revolutionary" are
+        BLOCKED per publish_gates.quality_gates.overclaim_detection
+
+  # Evidence class C — case studies
+  C_case_studies:
+    intent: |
+      Ground the capability claims in reproducible walk-throughs rather
+      than hypothetical marketing copy.
+    cases:
+      - id: CS1_dogfood_question
+        description: |
+          /question dogfood run on the bundle itself (captured in v0.3
+          verification): 97-line sharpened_question YAML with 4-class
+          novelty note.
+        provenance: git commit d528196, captured 2026-04-22
+        honest_label: |
+          This is a dogfood run — the bundle questioning its own design.
+          NOT a real-attorney test. Value is reproducibility: any reader
+          can run /question on their own and produce a comparable
+          artifact.
+      - id: CS2_dogfood_study_plan
+        description: |
+          /study-plan smoke test on a patent-schema preregistration
+          (captured in v0.3 verification): 57-line patent-prereg.yaml
+          with prior-art search plan, enablement demo, honest-pivot
+          clause, abandonment criteria.
+        provenance: git commit d528196, captured 2026-04-22
+        honest_label: |
+          Same honest label as CS1 — dogfood, not real-attorney.
+      - id: CS3_simulated_persona_A
+        description: |
+          v0.4 simulated Persona-A acceptance test: /question + /study-plan
+          on a patent-schema prereg with prior-art search plan, enablement
+          demo, honest-pivot clause, abandonment criteria.
+        provenance: git commit d528196 release notes
+        honest_label: |
+          SIMULATED persona by the author. Explicitly tagged exploratory.
+          Value: proves the pipeline produces persona-appropriate
+          outputs WITH CORRECT STRUCTURE. Does NOT prove attorneys find
+          the outputs useful.
+    minimum_count_per_recipe: 3  # white-paper recipe requires 3 case studies
+    disqualifying_omissions:
+      - a case where the bundle was run on a real invention by a real
+        attorney (does not yet exist for v0.4.0 — MUST be acknowledged
+        in limitations rather than manufactured)
+      - comparative time-cost measurements against a matched-attorney
+        baseline (do not exist — must NOT be invented)
+
+  # Evidence class D — risks and limitations
+  D_risks:
+    intent: |
+      The white-paper recipe mandates a risk table with at least one
+      non-fully-mitigated risk. The paper will surface at least three.
+    required_entries:
+      - claim_scope_regression (P3 failure mode)
+      - trade_secret_leakage (local-deployment gap)
+      - attorney_UX_unvalidated (v0.4 has no real-attorney testing)
+    mitigation_honesty_rule: |
+      No "planned feature" listed as a current mitigation. "Will be
+      addressed in v1.0" is NOT a mitigation; it is a risk acknowledgment.
+
+# -------------------------------------------------------------------------
+# Baselines and comparisons (locked before drafting)
+# -------------------------------------------------------------------------
+baselines:
+  primary: raw LLM prompting (ChatGPT/Claude/Gemini) with attorney's own
+           mental checklist
+  secondary: AI-assisted drafting (Rowan et al. — output-quality similar,
+             methodology-discipline different)
+  NOT_A_BASELINE:
+    - senior attorney drafting from scratch (different comparison; would
+      mislead)
+    - portfolio-management tools like PatSnap (different product class)
+
+# -------------------------------------------------------------------------
+# Draft-phase constraints (carried into /draft)
+# -------------------------------------------------------------------------
+draft_constraints:
+  target_template: templates/white-paper-skeleton.md
+  sections_must_include:
+    - executive-summary       # 250-400 words, stand-alone
+    - problem-statement       # discipline gap + "why now"
+    - proposed-approach       # mechanism, differentiation
+    - evidence-and-case-studies  # three case studies, one with mixed result
+    - competitive-analysis    # 4-class table with honest weaknesses row
+    - implementation-considerations
+    - risk-analysis           # ≥ 3 risks, ≥ 1 non-fully-mitigated
+    - limitations-section     # with v0.4 real-attorney-UX gap named
+    - conclusion              # restate thesis, name next step
+    - references              # APA style per white-paper defaults
+  dual_register_rules:
+    - explain rigor frameworks (pre-registration, honest-pivot,
+      exploratory-labeling) in plain language first, then footnote the
+      scientific parallel
+    - every § 102 / § 103 / § 112 reference carries a plain-language
+      gloss on first mention
+  blocked_terminology:
+    - revolutionary, game-changing, paradigm-shift, best-in-class,
+      industry-leading (absent a cited metric)
+    - significant, dramatically, substantially (as uncalibrated adverbs)
+  allowed_but_audited:
+    - "produces a defensible first-pass" — allowed because "defensible"
+      is defined in context and "first-pass" is explicitly not
+      "filing-ready"
+
+# -------------------------------------------------------------------------
+# Honest-pivot clause — what happens if evidence diverges from plan
+# -------------------------------------------------------------------------
+honest_pivot_clause:
+  applies_to: any deviation between this evidence plan and what /execute
+              actually produces
+  required_behaviors:
+    - deviations logged in output/whitepaper-run/honest-pivot-log.md with
+      timestamp, reason, and resulting scope change
+    - if /execute reveals a claim the evidence cannot support, the
+      /draft mode BLOCKS until the claim is either retracted, softened,
+      or an amendment is added to this preregistration
+    - the /publish gate refuses to compile the PDF if an unresolved
+      honest-pivot entry exists
+  acknowledged_exploratory_zones:
+    - all four predictions (P1-P4) remain exploratory for v0.4.0
+    - the "time-cost lower than raw LLM" claim (P4) is OPERATIONAL
+      not EMPIRICAL — it can be demonstrated by walkthroughs but not
+      numerically proven without real-attorney runs
+
+# -------------------------------------------------------------------------
+# Abandonment criteria — conditions under which this paper should NOT ship
+# -------------------------------------------------------------------------
+abandonment_criteria:
+  - if /critique returns BLOCK findings that cannot be resolved without
+    either fabricating evidence or softening to the point of uselessness
+  - if during /execute it becomes apparent that the bundle cannot even
+    produce the claimed outputs (e.g., a broken dogfood run)
+  - if a real-attorney test becomes available mid-draft and reveals the
+    claims are materially wrong — the correct response is to pause,
+    rerun /question, and restart
+  author_commitment: |
+    The author acknowledges that the right action under any of the above
+    is to pull the paper, not to soften it cosmetically and ship anyway.
+
+# -------------------------------------------------------------------------
+# Amendments (append-only after seal)
+# -------------------------------------------------------------------------
+amendments: []  # empty at seal
+
+# -------------------------------------------------------------------------
+# Preregistration seal
+# -------------------------------------------------------------------------
+seal:
+  algorithm: sha256
+  sealed_at: 2026-04-23T07:42:30-04:00
+  content_digest: "will be computed at publish time via scripts/validate_format.py"
+  note: |
+    The /publish mode will verify this digest against the file contents
+    before emitting the final PDF. Any post-seal edit to this file
+    without a corresponding amendment entry is a hard BLOCK at /publish.

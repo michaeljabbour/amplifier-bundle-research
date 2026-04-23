@@ -97,6 +97,10 @@ See [`docs/SPEC.md`](docs/SPEC.md) for the full specification.
 
 Generated via `amplifier tool invoke recipes operation=execute recipe_path=@foundation:recipes/generate-bundle-docs.yaml`. Regenerate on structural changes (`validate-bundle-repo` does this automatically when `source_hash` drifts).
 
+## Samples
+
+End-to-end runs of the pipeline, preserved as repo artifacts with session YAMLs, final PDFs, and capability catalogs. Browse the index at [`docs/SAMPLES.md`](docs/SAMPLES.md). First entry: [`examples/whitepaper-dogfood-run/`](examples/whitepaper-dogfood-run/) — a 16-page LaTeX white paper on the bundle itself, written with the bundle, for a patent-attorney audience.
+
 ## Local development
 
 To exercise the bundle from a local checkout without publishing, clone and register the working tree:

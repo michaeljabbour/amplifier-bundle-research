@@ -1,0 +1,194 @@
+# =========================================================================
+# /critique pass #2 — with stop-slop skill loaded
+# =========================================================================
+# Role: second /critique pass on the LaTeX draft (05-draft.tex), after
+# loading the newly-ported stop-slop skill. This pass targets prose-level
+# AI-tell patterns that the first /critique pass (04-critique.yaml) was
+# not equipped to catch.
+#
+# Method: grep sweep against the stop-slop rule catalog plus manual read
+# of load-bearing sections (executive summary, thesis, limitations,
+# about-the-author).
+# =========================================================================
+
+metadata:
+  created_at: 2026-04-23T08:12:00-04:00
+  created_by: honest-critic + stop-slop skill (loaded inline)
+  upstream_artifact: output/whitepaper-run/05-draft.tex
+  skill_loaded: stop-slop (.amplifier/skills/stop-slop/SKILL.md)
+  sweep_type: grep + targeted manual read of exec summary, thesis, limitations
+
+# =========================================================================
+# Grep sweep results
+# =========================================================================
+grep_sweep:
+  adverbs:
+    rule: ".amplifier/skills/stop-slop/references/phrases.md (adverbs section)"
+    pattern: "\\b(really|just|literally|genuinely|honestly|simply|actually|deeply|truly|fundamentally|inherently|inevitably|interestingly|importantly|crucially)\\b"
+    hits: 0
+    status: PASS
+  throat_clearing:
+    pattern: "Here's (the thing|what|this|that|why|the problem)"
+    hits: 0
+    status: PASS
+  em_dashes:
+    pattern: "—"
+    hits_initial: 3
+    locations:
+      - line 2: comment (non-rendering)  — OK
+      - line 35: subtitle — FIXED (replaced with comma)
+      - line 41: date metadata — FIXED (replaced with comma)
+    hits_after_fix: 1 (line 2, comment only, does not render)
+    status: PASS (zero rendering em-dashes)
+  wh_starters:
+    pattern: "(^|[.?!] )(What|When|Where|Which|Who|Why|How) "
+    hits: 1
+    locations:
+      - line 70: "When attorneys use general-purpose AI..."
+    decision: KEEP
+    reason: |
+      "When" here introduces a genuine conditional scope, not a rhetorical
+      setup. stop-slop rule 6 targets Wh- openers as crutch; this usage
+      is substantive ("under the condition that attorneys use AI, the
+      problem manifests"). Logged rather than changed.
+    status: NOTE
+  binary_contrasts:
+    pattern: "(isn't [A-Z].*it's|not because.*because|not just.*but also)"
+    hits: 0
+    status: PASS
+  business_jargon:
+    pattern: "\\b(navigate|unpack|lean into|landscape|game-changer|double down|deep dive|circle back)\\b"
+    hits_initial: 1
+    locations:
+      - line 493: "landscape completeness" — FIXED (rewritten as "completeness")
+    hits_after_fix: 0
+    status: PASS
+  vague_declaratives:
+    pattern: "(implications are significant|stakes are high|reasons are structural|consequences are real)"
+    hits: 0
+    status: PASS
+  false_agency:
+    method: manual read of limitations and risks sections
+    candidates_checked:
+      - "trade-secret risks that make it inappropriate for confidential-invention matters"
+        → decision: KEEP. "Risks making it inappropriate" is acceptable;
+          the sentence already names the human (attorneys) in the same
+          paragraph ("until an on-prem deployment mode exists that an
+          attorney has validated").
+      - "honest-critic may flag defensible language as overclaiming, leading
+         an attorney under deadline pressure to accept narrower claims"
+        → decision: KEEP. Active voice, attorney named as actor.
+      - "pre-registration mechanism draws from an evidence base"
+        → decision: KEEP. "Mechanism draws from" is borderline false-agency
+          but conventional in academic prose; rewriting ("the author
+          borrowed the pre-registration mechanism from...") would introduce
+          an unnecessary first-person pronoun.
+    status: PASS
+
+# =========================================================================
+# Manual read of load-bearing sections
+# =========================================================================
+manual_read:
+  executive_summary:
+    verdict: PASS
+    notes: |
+      Opens with disclosure paragraph before any capability claim (per
+      04-critique BLOCK B1). Thesis sentence is one clause, falsifiable.
+      No adverb crutches. Action for reader is direct.
+  thesis_sentence:
+    text: |
+      "amplifier-bundle-research v0.4.0 is a machine-assisted methodology
+      scaffold that forces these steps to happen, on the record, before
+      the first draft exists."
+    verdict: PASS
+    stop_slop_score:
+      directness: 9 (clean declarative)
+      rhythm: 8 (varied)
+      trust: 9 (no hand-holding)
+      authenticity: 9 (sounds like the author)
+      density: 8 (could cut "machine-assisted" as redundant with
+                  "scaffold that forces these steps to happen")
+      total: 43/50 (well above 35/50 revise threshold)
+  limitations_section:
+    verdict: PASS
+    notes: |
+      L3 is rewritten with "you should not use..." putting the attorney
+      reader in the seat (per stop-slop research-bundle-examples.md #2).
+      L6 keeps the vendor-author conflict explicit. No false agency.
+  about_the_author:
+    verdict: PASS
+    notes: |
+      Third-person throughout (Michael Jabbour as subject). No
+      narrator-from-a-distance. No vague declaratives. Conflict disclosure
+      is explicit.
+
+# =========================================================================
+# New findings surfaced by stop-slop (beyond 04-critique.yaml)
+# =========================================================================
+new_findings:
+  SS1:
+    severity: NOTE
+    finding: |
+      Three-item lists appear throughout the problem-statement and
+      proposed-approach sections ("search scope discipline, overclaiming
+      detection, enablement self-check"). stop-slop rule 6 prefers "two
+      items beat three." Keeping three-item lists where each item is
+      load-bearing; flagging for future tightening.
+    location: multiple, notably section 1.2
+    resolved: accepted as NOTE; no change to draft
+  SS2:
+    severity: NOTE
+    finding: |
+      Document uses "significant" once (risk table, R1 residual column:
+      "Significant. Unresolved for v0.4.0."). This is the allowed sense
+      (named residual risk magnitude) rather than the banned sense
+      (vague declarative). Logged for transparency.
+    location: Risk table R1, R2
+    resolved: accepted as NOTE; usage is calibrated to a named quantity
+  SS3:
+    severity: NOTE
+    finding: |
+      Sentence rhythm: three consecutive sentences in the executive
+      summary share roughly similar length (65-80 characters each).
+      stop-slop rule 6 says "break one." Not aggressively broken;
+      flagged for future revision.
+    location: executive summary, paragraph 2
+    resolved: accepted as NOTE
+
+# =========================================================================
+# Overall severity distribution (stop-slop pass only)
+# =========================================================================
+severity_distribution_stop_slop:
+  BLOCK: 0
+  WARN:  0
+  NOTE:  3
+
+# =========================================================================
+# Combined severity (first critique + stop-slop pass)
+# =========================================================================
+combined_severity:
+  BLOCK_resolved: 4 of 4  # all from 04-critique.yaml, visible in 05-draft.tex
+  WARN_resolved:  6 of 6  # from 04-critique.yaml
+  NOTE_outstanding: 7     # 4 from 04-critique + 3 from stop-slop
+  stop_slop_auto_fixes_applied: 3  # em-dashes, landscape jargon
+
+# =========================================================================
+# Verdict
+# =========================================================================
+verdict: READY_TO_PUBLISH
+rationale: |
+  All BLOCK findings from the first /critique pass are resolved in
+  05-draft.tex. stop-slop loaded during this second pass surfaced three
+  additional NOTE-severity items, none of which gate publication. The
+  paper is clear of the banned AI-tell patterns (adverb crutches,
+  throat-clearing openers, rendering em-dashes, binary contrasts, vague
+  declaratives, false agency in limitations). Ready for /publish.
+
+ready_for_publish: true
+publish_gate_status:
+  critique_required: PASS (04-critique.yaml + 04b-critique-v2-stop-slop.yaml)
+  honest_pivot_acknowledged: PASS
+  thesis_clarity: PASS
+  overclaim_detection: PASS
+  evidence_coverage: WARN (labeled exploratory in 01-question.yaml)
+  competitive_analysis: PASS

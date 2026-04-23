@@ -1,0 +1,458 @@
+# =========================================================================
+# /execute artifact — evidence log for white-paper recipe
+# =========================================================================
+# Role: records WHAT evidence was gathered, FROM WHERE, and WITH WHAT
+# PROVENANCE. This is the input the /draft phase reads when populating
+# the white-paper-skeleton.md sections. The /critique phase reads the
+# same log to verify claims are evidence-backed.
+#
+# Honest-pivot: any divergence from 02-study-plan.yaml must appear as a
+# `pivot:` entry here with timestamp + reason.
+# =========================================================================
+
+metadata:
+  created_at: 2026-04-23T07:43:00-04:00
+  session_id: e623279d-44ef-458d-b7b7-ddc8f73e105c
+  upstream_prereg: output/whitepaper-run/02-study-plan.yaml
+  executed_by: research-coordinator (routing) + statistician (for P4 framing)
+
+honest_pivots:
+  - timestamp: 2026-04-23T07:43:10-04:00
+    from: "time-cost claim (P4) phrased as 'lower than baseline'"
+    to: "time-cost claim phrased as 'OPERATIONAL not EMPIRICAL — cannot
+          be numerically proven for v0.4.0'"
+    reason: |
+      /execute surfaced that no wall-clock data exists. Honest-pivot
+      requires softening the claim to the walkthrough-level evidence
+      actually in hand. The preregistration already anticipated this
+      (honest_pivot_clause.acknowledged_exploratory_zones), so this is
+      a SOFT pivot — the paper was already planned to carry the
+      softer claim. Logged here for audit completeness.
+
+# =========================================================================
+# EVIDENCE CLASS A — Discipline-gap evidence
+# =========================================================================
+class_A_discipline_gap:
+
+  finding_A1:
+    claim_supported: |
+      Patent attorneys already practice an evidence-defensibility craft.
+      The statutory scaffolding (§§ 102, 103, 112) asks the same
+      questions scientific peer review asks: is this claim novel, is it
+      non-obvious, is it actually enabled by the disclosure?
+    evidence:
+      - source: MPEP § 2100 series (USPTO)
+        note: codifies duty-of-candor (37 CFR 1.56), disclosure
+              obligations, and examination standards
+      - source: MPEP § 2163 (written description + enablement under § 112(a))
+        note: "full, clear, concise, and exact terms as to enable any
+               person skilled in the art to which it pertains"
+      - source: MPEP § 2141 (Graham v. Deere four-factor obviousness test)
+        note: scope and content of prior art → differences → level of
+              skill → secondary considerations
+    strength: strong (primary USPTO sources)
+    gloss_for_paper: |
+      § 102 = "has anyone already done this?" — novelty.
+      § 103 = "would the obvious next step for a skilled practitioner
+              get here?" — non-obviousness.
+      § 112 = "does the disclosure actually teach someone skilled how to
+              build it?" — enablement + written description.
+
+  finding_A2:
+    claim_supported: |
+      Commodity LLM use in drafting leaks discipline in predictable ways:
+      post-hoc search-scope narrowing, unstated assumptions in the
+      detailed description, and overclaiming adverbs in the specification.
+    evidence:
+      - source: IPWatchdog and Patently-O practitioner commentary on
+                AI-assisted drafting (2024-2025)
+        note: recurring themes: hallucinated references, silently
+              narrowed claim sets, "substantially"-laden specifications
+              that weaken enablement
+      - source: USPTO AI-assistance guidance (2024, updated 2025)
+        note: registration and disclosure obligations when AI tools are
+              used in prosecution; duty-of-candor extends to AI-induced
+              errors
+      - source: internal dogfood observation (bundle session 2026-04-22)
+        note: bundle /question on self surfaces that "significantly"
+              and "dramatically" appear in draft outputs even when the
+              spec provides no numbers — an overclaim pattern the bundle
+              is designed to catch via /critique
+    strength: moderate (practitioner commentary + single dogfood run)
+    gloss_for_paper: |
+      The problem is not that LLMs "hallucinate" — attorneys can catch
+      that. The problem is that they quietly skip the disciplined steps
+      that would have caught a weaker claim or a thinner enablement
+      earlier. The skipping is INVISIBLE unless you design the workflow
+      to make the steps visible.
+
+  finding_A3:
+    claim_supported: |
+      Pre-registration discipline is a proven intervention in adjacent
+      evidence-defensibility domains (clinical trials, empirical
+      psychology). It works by making methodology decisions visible and
+      auditable before results are known.
+    evidence:
+      - source: Nosek et al. 2018, PNAS, "The preregistration revolution"
+        note: analogical support — NOT a patent-specific citation
+      - source: ClinicalTrials.gov registration mandate (FDA AA Act 2007)
+        note: demonstrates that regulatory pre-registration enforcement
+              is feasible in high-stakes evidence domains
+    strength: analogical only
+    honest_limit: |
+      Nothing in the literature establishes that pre-registration
+      improves patent prosecution outcomes. The parallel is conceptual.
+      The paper must present it as "the bundle applies a known rigor
+      mechanism to an adjacent domain where the same failure modes
+      appear" — not as "pre-registration has been shown to improve
+      patent quality."
+
+# =========================================================================
+# EVIDENCE CLASS B — Competitive landscape (fair, non-straw-manned)
+# =========================================================================
+class_B_competitive:
+
+  comparator_B1_ip_management_suites:
+    names: [PatSnap, Anaqua, Clarivate IP Management]
+    assessment_method: vendor documentation + G2/Capterra reviews as of
+                        2026-04; no hands-on product testing performed
+    product_category: IP portfolio and docket management
+    strengths:
+      - mature prior-art search across millions of records
+      - portfolio analytics, deadline docketing, family management
+      - enterprise procurement and audit readiness
+    weaknesses_for_this_comparison:
+      - not a drafting tool — no methodology enforcement for the
+        first-draft step
+      - no auditable pre-registration of search scope
+      - priced for enterprise; out of reach for solo/small-firm Persona A
+    honest_framing: |
+      These are adjacent products, not rivals. The bundle's competitive
+      claim is ONLY that it occupies a drafting-methodology niche these
+      products do not address.
+
+  comparator_B2_ai_drafting_tools:
+    names: [Rowan Patents, Solve Intelligence, ClaimMaster, Patent Bots]
+    assessment_method: public product pages, recorded vendor demos,
+                        third-party reviews (as available as of 2026-04)
+    product_category: AI-assisted patent drafting
+    strengths:
+      - filing-ready prose output
+      - claim-chart automation
+      - integrated drafting workflow inside a single UI
+    weaknesses_for_this_comparison:
+      - methodology layer is typically opaque — no visible
+        pre-registration of search scope or claim-narrowing decisions
+      - "filing-ready" framing risks deskilling attorneys on the very
+        judgment steps examiners test later
+      - attorney cannot reproduce the drafting decision audit without
+        vendor cooperation
+    honest_framing: |
+      Output-quality gap to the bundle is narrow and NOT the
+      distinguishing axis. The distinguishing axis is methodology
+      visibility and audit trail.
+
+  comparator_B3_raw_llm:
+    names: [ChatGPT o1/o3, Claude Sonnet/Opus, Gemini 2.5 Pro]
+    assessment_method: public capability documentation + dogfood LLM
+                        session (2026-04-22)
+    product_category: general-purpose LLM chat
+    strengths:
+      - zero setup, universally available
+      - wide general capability; attorney bears no tooling cost
+    weaknesses_for_this_comparison:
+      - attorney carries ALL discipline manually
+      - no prior-art audit trail
+      - no built-in overclaiming detection
+      - no venue-aware formatting
+      - inconsistent across sessions (no persistent methodology)
+    honest_framing: |
+      This is the BASELINE, not a rival. The bundle exists specifically
+      to make a raw-LLM workflow reproducible and auditable.
+
+  comparator_B4_internal_checklists:
+    names: [firm-internal templates, MPEP-derived checklists, AIPLA
+            published templates]
+    assessment_method: review of publicly published firm resources where
+                        available; most firm-internal artifacts are
+                        confidential
+    product_category: tacit firm knowledge
+    strengths:
+      - battle-tested by decades of prosecution
+      - tuned to firm's specific claim-drafting philosophy
+      - free (already paid for)
+    weaknesses_for_this_comparison:
+      - invisible to audit (which parts of the checklist were actually
+        applied on a given matter?)
+      - scales poorly across attorneys and juniors
+      - degrades with turnover
+      - not portable when an attorney leaves
+    honest_framing: |
+      The bundle does NOT replace firm expertise. It gives a FORM for
+      that expertise to travel in, and a structured way for a junior to
+      inherit a senior's discipline without inheriting their tacit
+      corrections.
+
+  comparator_BUNDLE_self:
+    name: amplifier-bundle-research v0.4.0
+    strengths:
+      - pre-registration of search scope before search executes
+      - /critique pass surfaces enablement + overclaim findings with
+        severity labels (BLOCK / WARN / NOTE)
+      - honest-pivot enforcement prevents silent scope shifts
+      - venue-formatter emits USPTO-compliant output (37 CFR 1.52
+        margins, claim numbering, line spacing)
+      - Open source, Apache-2.0, one-command install
+    weaknesses_honestly:
+      - NO real-attorney UX validation yet (v0.4 is simulated-persona
+        only — see Limitations section)
+      - NO measured time-cost comparisons against any baseline
+      - trade-secret-sensitive matters require an on-prem deployment
+        that does not yet exist for the default Anthropic-provider config
+      - output-prose quality has received less optimization effort than
+        competitor B2 class
+      - attorney UX mode-transition friction has not been measured
+    honest_framing: |
+      The bundle wins on METHODOLOGY VISIBILITY. It does not
+      necessarily win on output polish or on integrated docketing. A
+      reader whose pain is "I want filing-ready prose in one click" is
+      not the bundle's audience.
+
+# =========================================================================
+# EVIDENCE CLASS C — Case studies (three, with at least one mixed)
+# =========================================================================
+class_C_case_studies:
+
+  case_CS1:
+    id: CS1
+    title: "/question dogfood — bundle interrogating its own design"
+    context: |
+      A walkthrough of /question run on the statement "amplifier-bundle-
+      research should be valuable for patent attorneys." The output is
+      what a reader can reproduce today by running `amplifier run
+      --mode /question` with that prompt. Captured in v0.3 verification.
+    intervention: /question mode with hypothesis-designer agent
+    outcome: |
+      97-line sharpened_question YAML with a 4-class novelty note that
+      distinguishes the bundle from (1) IP management, (2) AI drafting,
+      (3) raw LLM, (4) internal checklists.
+    measured_impact:
+      artifact_size: 97 lines of structured YAML
+      novelty_classes: 4
+      falsifiable_predictions_count: not applicable at /question stage
+      reproducibility: any reader can re-run and diff outputs
+    honest_label: |
+      DOGFOOD. Not a real-attorney test. Value is reproducibility and
+      transparency of the output shape.
+    provenance: git commit d528196 (release notes), file captured 2026-04-22
+
+  case_CS2:
+    id: CS2
+    title: "/study-plan smoke test — patent-schema preregistration"
+    context: |
+      A /study-plan run producing templates/patent-prereg.yaml
+      populated for a synthetic invention. Captured in v0.3 verification.
+    intervention: /study-plan mode with methodologist +
+                   preregistration-reviewer
+    outcome: |
+      57-line patent-prereg.yaml containing: prior-art search plan
+      (terms, CPC classes, date cutoff), enablement demo plan,
+      honest-pivot clause, abandonment criteria, sha256 seal section.
+    measured_impact:
+      artifact_size: 57 lines of structured YAML
+      prereg_fields_populated: 8 of 8 required
+      sha256_seal_present: yes
+    honest_label: |
+      DOGFOOD. Not a real invention. Not a real attorney. The case is
+      cited to demonstrate the ARTIFACT SHAPE the bundle produces — it
+      is NOT a case of "attorney X saved Y hours on invention Z."
+    provenance: git commit d528196
+
+  case_CS3:
+    id: CS3
+    title: "v0.4 simulated-Persona-A acceptance test — end-to-end
+            /question + /study-plan with honest-pivot clause"
+    context: |
+      Author-as-attorney exercise: take a plausible software-ML
+      invention, run /question then /study-plan, document every step,
+      score against a mental model of "what would a patent attorney
+      expect to see at each stage?"
+    intervention: full /question → /study-plan pipeline
+    outcome: |
+      Patent-schema preregistration with prior-art search plan,
+      enablement demonstration, honest-pivot clause, and abandonment
+      criteria. Included rejection-correct behavior on overclaiming
+      adverbs in the scratch spec.
+    measured_impact:
+      pipeline_ran_to_completion: yes
+      honest_pivot_clause_present: yes
+      abandonment_criteria_present: yes
+      artifact_persona_appropriate_by_authors_own_rubric: yes
+    mixed_result_honesty: |
+      The author is both the bundle designer AND the simulated
+      attorney. This is a correctness-of-shape test, not a usefulness
+      test. A real attorney reading the output might find it
+      overengineered, under-engineered, or mis-calibrated in ways the
+      author cannot self-detect. The paper treats CS3 as evidence of
+      CAPABILITY (the bundle produces what it claims to produce) NOT
+      of USEFULNESS (attorneys prefer this workflow).
+    provenance: git commit d528196 (v0.4 simulated persona acceptance
+                 tests block in release notes)
+
+  case_count_check:
+    minimum_required_by_recipe: 3
+    actual: 3
+    at_least_one_mixed_case: yes (CS3 carries the explicit
+                              author-is-designer-is-attorney caveat)
+
+# =========================================================================
+# EVIDENCE CLASS D — Risks (mandatory for white-paper recipe)
+# =========================================================================
+class_D_risks:
+
+  risk_D1_claim_scope_regression:
+    description: |
+      /critique might flag "aggressive-but-supported" claims as
+      overclaims, causing an attorney to accept a narrower claim than
+      they should have filed.
+    likelihood: medium
+    impact: high (direct patent-quality cost)
+    mitigation: |
+      /critique distinguishes "overclaim" (unsupported-by-spec) from
+      "aggressive-but-supported" and issues BLOCK severity only for the
+      former. An attorney retains full editorial control — /critique
+      findings are advisory, not enforced at /draft unless explicitly
+      configured. But the REAL mitigation is attorney-in-the-loop review
+      at each mode boundary; this risk is NOT fully mitigated.
+    residual: non-zero — must be acknowledged in the paper
+
+  risk_D2_trade_secret_leakage:
+    description: |
+      Default bundle configuration uses a hosted LLM provider
+      (Anthropic, OpenAI, etc.). Invention disclosures sent to a hosted
+      provider may violate trade-secret protections, client
+      confidentiality expectations, or export-control restrictions.
+    likelihood: medium (depends on client consent posture)
+    impact: high (legal exposure + malpractice risk)
+    mitigation: |
+      On-prem deployment modes exist in the broader Amplifier ecosystem
+      (Ollama, local Azure OpenAI). The RESEARCH bundle has not been
+      validated end-to-end under these modes. Attorneys handling
+      pre-filing trade-secret matter should either wait for v1.x's
+      on-prem validation or self-validate before use.
+    residual: significant — acknowledged as explicit Out-Of-Scope for v0.4
+
+  risk_D3_attorney_UX_unvalidated:
+    description: |
+      v0.4 passed simulated persona-A acceptance. It has NOT been
+      tested by a real patent attorney on a real filing. Mode-transition
+      friction, default-wording appropriateness, and vocabulary
+      pitch-to-audience are all unvalidated in anger.
+    likelihood: high (this gap is known, not hypothetical)
+    impact: medium (delays v1.0; does not harm matters drafted by
+             attorneys who review every step)
+    mitigation: |
+      post-v0.4 roadmap commits to 3 real-attorney sessions before v1.0.
+      The paper itself is an artifact of this validation effort — it
+      exists partly to surface the bundle to attorneys who might
+      participate.
+    residual: significant — this is the headline limitation
+
+  risk_D4_false_positive_overclaim_flags:
+    description: |
+      honest-critic may flag language that is defensible in context
+      (e.g., "reduces latency by 50%" when the spec includes the
+      supporting benchmark). An attorney who accepts all BLOCK findings
+      uncritically could weaken claim language.
+    likelihood: medium
+    impact: low-medium (catchable in final review)
+    mitigation: |
+      findings are SEVERITY-LABELED (BLOCK/WARN/NOTE); attorney
+      retains accept/reject control; /critique shows the specific
+      text it flagged for each finding so attorney can judge context.
+      Paper surfaces this as a known UX failure mode.
+    residual: minor — mitigable with reasonable review practice
+
+# =========================================================================
+# EVIDENCE CLASS E — Quantifiable bundle-internal facts
+# =========================================================================
+class_E_bundle_facts:
+
+  counts:
+    agents: 10
+    modes: 6
+    recipes: 9
+    behaviors: 7
+    context_files: 17
+    templates: "32+"
+    scripts: 4
+    modules: 1  # tool-paperbanana
+
+  mode_list:
+    - /question
+    - /study-plan   # named this way to avoid collision with amplifier-bundle-modes' /plan
+    - /execute
+    - /critique
+    - /draft
+    - /publish
+
+  agent_list:
+    - hypothesis-designer    # wraps K-Dense hypothesis-generation
+    - preregistration-reviewer
+    - methodologist
+    - statistician
+    - honest-critic          # wraps K-Dense peer-review + scholar-evaluation
+    - technical-writer
+    - figure-designer
+    - citation-manager
+    - venue-formatter
+    - research-coordinator
+
+  venue_format_specs:
+    - USPTO  (context/venue-formats/uspto.md — 37 CFR 1.52 compliant)
+    - NSF grant (context/venue-formats/nsf-grant.md)
+    - Policy memo (context/venue-formats/policy-memo.md)
+    - NeurIPS, ICML, ACL, IEEE, ACM, arXiv (context/conference-formats/)
+
+  verification_status_as_of_v0_4_0:
+    programmatic_pass:
+      - tool-paperbanana protocol compliance (all 8 checklist items)
+      - scripts/compile_latex.py produces valid 82 KB PDF from test input
+      - scripts/download_templates.py handles ACL + IEEE + ACM via CTAN
+        gracefully; NeurIPS + ICML instruct manual download
+      - /question dogfood produced 97-line sharpened_question artifact
+      - /study-plan smoke test produced 57-line patent-schema prereg
+    simulated_persona_acceptance_pass:
+      - Persona A (patent attorney, simulated)
+      - Persona B (ML researcher, simulated)
+      - Persona C (peer reviewer, simulated — correctly chose
+        REFORMS-ML over PRISMA/STROBE for an ML paper)
+    real_user_validation_status: NOT YET PERFORMED (explicit v1.0 gate)
+
+# =========================================================================
+# EVIDENCE COMPLETENESS CHECK (pre-critique)
+# =========================================================================
+completeness_check:
+  white_paper_recipe_gate: quality_gates
+  - gate: evidence_coverage (≥ 3 independent sources per major claim)
+    status: WARN
+    reason: |
+      Thesis P1 (prior-art auditability) has MPEP § 2100, Nosek 2018,
+      and internal dogfood run = 3 sources BUT one is analogical.
+      Thesis P2 (enablement catch rate) has MPEP § 2163, practitioner
+      commentary, and dogfood observation = 3 sources. Thesis P3
+      (claim scope) has dogfood + analytical reasoning + claim-chart
+      template structure = 2 direct + 1 analytical. Thesis P4 (time
+      cost) has ONLY walkthrough evidence — no measured baselines.
+      Per honest-pivot clause, P4 is labeled OPERATIONAL not EMPIRICAL.
+  - gate: competitive_analysis (≥ 2 competitor classes analyzed)
+    status: PASS
+    reason: 4 competitor classes analyzed (IP management, AI drafting,
+            raw LLM, internal checklists)
+  - gate: thesis_clarity (≤ 2 sentences, falsifiable)
+    status: PASS
+    reason: one_line_thesis is one sentence with explicit
+            disconfirmation criteria
+  - gate: overclaim_detection
+    status: DEFERRED to /critique
+ready_for_critique: true

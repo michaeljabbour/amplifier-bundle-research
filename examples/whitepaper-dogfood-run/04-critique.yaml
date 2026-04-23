@@ -1,0 +1,342 @@
+# =========================================================================
+# /critique artifact — honest-critic adversarial review
+# =========================================================================
+# Role: argue AGAINST the work. Default assumption: the paper is trying
+# to look like academic rigor while functioning as a sales pitch for the
+# author's own bundle. The /critique pass must defang that reading by
+# surfacing every weakness the critique imagines a hostile reviewer
+# would find.
+#
+# Severity vocabulary:
+#   BLOCK — must be resolved before /draft (or draft must retract/soften
+#           the affected claim)
+#   WARN  — draft proceeds, but must address explicitly
+#   NOTE  — advisory; draft should mention
+# =========================================================================
+
+metadata:
+  created_at: 2026-04-23T07:46:00-04:00
+  created_by: honest-critic (wrapping K-Dense peer-review + scholar-evaluation)
+  recipe: white-paper
+  upstream_artifacts:
+    - output/whitepaper-run/01-question.yaml
+    - output/whitepaper-run/02-study-plan.yaml
+    - output/whitepaper-run/03-execute-evidence-log.yaml
+  critique_posture: |
+    Argue against the paper as a whole. Default: this is a vendor
+    white paper written by the vendor's employee about the vendor's
+    product, and the audience (patent attorneys) is trained to detect
+    motivated reasoning. If the paper survives this critique, it
+    survives a hostile reviewer.
+
+# =========================================================================
+# FRAMEWORK APPLIED
+# =========================================================================
+framework: |
+  Peer-review rubric for capability-claim white papers, adapted from
+  REFORMS-ML (for ML capability claims) plus patent-prosecution
+  defensibility norms. Scores on five dimensions:
+    1. Thesis defensibility — does evidence actually support the claim?
+    2. Overclaim detection  — language calibrated to evidence?
+    3. Evidence gaps        — what load-bearing evidence is missing?
+    4. Generalization       — does evidence apply broadly or narrowly?
+    5. Conflict-of-interest disclosure — author-is-vendor handled honestly?
+
+# =========================================================================
+# FINDINGS — BLOCK level (must resolve before /draft proceeds)
+# =========================================================================
+findings_block:
+
+  B1_vendor_author_conflict:
+    dimension: conflict_of_interest
+    severity: BLOCK
+    finding: |
+      The author of the white paper is the author of the bundle. The
+      paper cannot pretend to be a third-party capability assessment.
+      A reviewer trained in patent-prosecution skepticism will discount
+      the entire document if this is not surfaced in the first 500
+      words of the executive summary AND in the About the Authors section.
+    required_resolution: |
+      Add explicit conflict-of-interest disclosure BEFORE any capability
+      claim is made. The executive summary must open with language that
+      frames the paper as a first-person description of an author's
+      own tool inviting independent evaluation, NOT as an independent
+      capability assessment.
+    suggested_language: |
+      "This paper is written by the author of amplifier-bundle-research.
+      It describes what the bundle does and where it may be useful; it
+      does NOT constitute an independent capability evaluation. Readers
+      should treat measured claims here as the author's best-faith
+      walkthrough evidence and weigh them accordingly."
+
+  B2_P4_time_cost_claim_unsupported_as_comparative:
+    dimension: thesis_defensibility
+    severity: BLOCK
+    finding: |
+      Prediction P4 states the bundle produces a first-draft "in less
+      reviewer-burdened time than a raw-LLM-plus-checklist baseline."
+      The evidence log provides ZERO wall-clock data on either side of
+      this comparison. Honest-pivot log already softens P4 to
+      OPERATIONAL, not EMPIRICAL — but the DRAFT may still smuggle the
+      comparative framing back in if not watched.
+    required_resolution: |
+      Draft must replace every comparative-time claim with an
+      "operational walk-through" framing. Language like "less time"
+      or "faster" is BLOCKED. Language like "imposes the sequence
+      up-front rather than mid-draft" is allowed.
+
+  B3_case_studies_all_author_generated:
+    dimension: evidence_gaps
+    severity: BLOCK
+    finding: |
+      All three case studies (CS1, CS2, CS3) are author-generated. CS3
+      is explicitly a simulated-persona test. A reviewer will ask:
+      "where is the case study of an attorney you are not?" The paper
+      must either produce such a case or explicitly acknowledge its
+      absence as the paper's central limitation — not as a footnote.
+    required_resolution: |
+      Dedicate a visible subsection of Limitations titled "No real-
+      attorney validation yet (v0.4.0)." This is already planned in
+      02-study-plan.yaml D3 — verify /draft carries it through as a
+      PROMINENT limitation, not buried.
+
+  B4_superlative_surface_in_source_text:
+    dimension: overclaim_detection
+    severity: BLOCK
+    finding: |
+      The source material from the user's request contains the phrases
+      "the same disciplined workflow trained scientists use" and "same
+      discipline, same scaffolding." A hostile reviewer reads "same
+      discipline trained scientists use" as an unsupported status claim.
+      The paper MUST either back this with a specific mechanism (what
+      discipline?) or soften ("a selected subset of rigor practices
+      drawn from the empirical-science workflow tradition, applied to
+      defensibility writing").
+    required_resolution: |
+      Reframe every "same as scientists" instance. Acceptable form:
+      "The bundle applies three specific rigor practices — hash-locked
+      pre-registration, severity-labeled peer-critique, and
+      exploratory-vs-confirmatory labeling — borrowed from empirical
+      science and mapped to patent drafting."
+
+# =========================================================================
+# FINDINGS — WARN level (draft proceeds but must address)
+# =========================================================================
+findings_warn:
+
+  W1_competitive_framing_asymmetric:
+    dimension: generalization
+    severity: WARN
+    finding: |
+      Comparator B1 (PatSnap/Anaqua/Clarivate) is a different product
+      category (IP portfolio management) than the bundle (drafting
+      support). Comparing them on "methodology audit trail" is like
+      comparing a hammer to a clipboard on their cutting ability.
+      The paper risks sounding unfair if it does not explicitly
+      acknowledge the category mismatch in the competitive table.
+    required_resolution: |
+      Add a sentence before the competitive table: "Comparators B1
+      (IP management) and B4 (internal checklists) address adjacent
+      concerns rather than the drafting-methodology niche this bundle
+      occupies. They are included for completeness of the landscape,
+      not to suggest the bundle outperforms them on their native axes."
+
+  W2_analogical_evidence_for_prereg_claim:
+    dimension: thesis_defensibility
+    severity: WARN
+    finding: |
+      Class A finding A3 cites Nosek 2018 on scientific pre-registration
+      as support for the claim that pre-registration discipline helps
+      patent drafting. This is ANALOGICAL. The paper risks a reviewer
+      concluding the author cannot distinguish argument by analogy from
+      argument by evidence.
+    required_resolution: |
+      Every time the Nosek / ClinicalTrials.gov analogy appears, it
+      must be framed as "mechanism-similarity argument" not "evidence
+      of patent-quality improvement." The Limitations section must
+      enumerate analogical reasoning as a known paper-level weakness.
+
+  W3_dogfood_evidence_quality:
+    dimension: evidence_gaps
+    severity: WARN
+    finding: |
+      CS1 and CS2 are dogfood runs. A dogfood artifact is not
+      independent evidence — it proves the bundle produces output of
+      the claimed SHAPE, nothing more. A hostile reviewer will note
+      that "the bundle produces patent-prereg-shaped YAML" is not the
+      same as "the bundle helps attorneys write better patent briefs."
+    required_resolution: |
+      Case studies must be framed as CAPABILITY DEMONSTRATIONS not
+      OUTCOME EVIDENCE. Every case-study section needs a "what this
+      does and does not prove" footer.
+
+  W4_honest_critic_false_positive_asymmetry:
+    dimension: generalization
+    severity: WARN
+    finding: |
+      Risk D4 (false-positive overclaim flags) is mitigated by
+      "attorney retains accept/reject control." But attorneys working
+      under deadline pressure may accept BLOCK findings uncritically to
+      clear the queue. The paper's mitigation is itself UX-theoretic,
+      not UX-measured.
+    required_resolution: |
+      Acknowledge in Risk Analysis that D4 mitigation is hypothetical.
+      Note that the v1.0 real-attorney validation roadmap will
+      measure actual accept-reject behavior under time pressure.
+
+  W5_trade_secret_risk_scope:
+    dimension: generalization
+    severity: WARN
+    finding: |
+      Risk D2 (trade-secret leakage) is real and the paper acknowledges
+      it. BUT: the acknowledgment risks being read as "yes we know, use
+      it anyway" rather than "do not use this for trade-secret matters
+      until v1.x." The attorney-audience reading will be sharp here
+      because the malpractice exposure is direct.
+    required_resolution: |
+      Elevate D2 to a prominent callout box in the Limitations section
+      AND a one-line note in the Executive Summary. Do not allow this
+      risk to read as a footnote.
+
+  W6_persona_A_framing_condescension_risk:
+    dimension: thesis_defensibility
+    severity: WARN
+    finding: |
+      The Persona A framing ("non-scientist with a claim to defend")
+      may read as patronizing to prosecution attorneys who hold PhDs
+      and engage rigor frameworks fluently. The paper uses this framing
+      internally (e.g., in PERSONAS.md) but must NOT use it in the
+      audience-facing prose.
+    required_resolution: |
+      Audience-facing draft must frame the parallel as peer-to-peer
+      (both attorneys and scientists practice evidence-defensive
+      crafts with different vocabularies), never as remedial.
+
+# =========================================================================
+# FINDINGS — NOTE level (advisory)
+# =========================================================================
+findings_note:
+
+  N1_publication_timing:
+    severity: NOTE
+    finding: |
+      v0.4.0 released 2026-04-22. This paper drafted 2026-04-23.
+      Same-day publication of a capability paper after release
+      raises "press-release-as-academic-paper" flags. Not a blocker
+      — just acknowledge the release timeline honestly.
+    suggested_handling: |
+      In Background & Market Context, include a brief "Development
+      timeline" paragraph that states v0.2.0 (Apr 22), v0.4.0 (Apr 22),
+      and that this paper is the first public capability description.
+
+  N2_vocabulary_consistency:
+    severity: NOTE
+    finding: |
+      "Pre-registration," "pre-reg," and "hash-locked plan" are used
+      interchangeably across the source material. Attorney readers
+      will parse this as three different things if not normalized.
+    suggested_handling: |
+      Glossary box at first use; then use "pre-registration" consistently.
+
+  N3_uspto_ai_guidance_timing:
+    severity: NOTE
+    finding: |
+      2024-2025 USPTO AI-assistance guidance is cited but not
+      summarized. A reader may want a one-paragraph pointer to the
+      specific registration + disclosure obligations.
+    suggested_handling: |
+      Add a short "Regulatory context: USPTO AI-use disclosure"
+      subsection in the Problem Statement.
+
+  N4_statistical_literacy_assumption:
+    severity: NOTE
+    finding: |
+      Predictions P1-P4 use "reproduction rate ±10%", "false-positive
+      rate > 50%", "Likert 1-5" — statistical language the audience
+      may or may not want. Some attorneys will engage; others will
+      skim.
+    suggested_handling: |
+      Keep the quantitative criteria but accompany each with a plain-
+      language paraphrase. Dual-register is already specified in
+      02-study-plan.yaml draft_constraints.dual_register_rules.
+
+# =========================================================================
+# ALTERNATIVE EXPLANATIONS THE PAPER MUST NAME
+# =========================================================================
+alternative_explanations:
+
+  AE1: |
+    A reviewer might explain the bundle's appeal NOT as methodology
+    rigor but as NOVELTY: attorneys try it because it is new, not
+    because it works. The paper must acknowledge that v0.4's appeal
+    could be a novelty effect measurable only by longitudinal
+    real-attorney use.
+
+  AE2: |
+    The "auditable methodology" claim could be an artifact of WRITING
+    STYLE, not WORKFLOW STRUCTURE. An attorney forced to use a
+    well-written checklist might produce equally auditable work.
+    The claim that the AUDITABILITY benefit is unique to
+    machine-assisted workflow requires a three-arm comparison: raw
+    LLM / checklist-alone / bundle. The paper does not (and cannot
+    today) run this comparison.
+
+  AE3: |
+    Time savings, if they exist, could be attributable to LLM
+    acceleration of BOILERPLATE prose generation — something ALL
+    AI-drafting tools share — not to the bundle's methodology
+    scaffolding specifically. The paper cannot tease these apart
+    without a controlled comparison.
+
+  AE4: |
+    The bundle's "honest-pivot" behavior might encourage attorneys to
+    OVER-narrow their claims by surfacing every possible concern.
+    Prediction P3 (claim scope preservation) is an attempt to
+    forestall this, but it is not yet empirically validated.
+
+# =========================================================================
+# LIMITATION SPECIFICITY CHECK
+# =========================================================================
+limitation_specificity_rubric:
+  requirements:
+    - limitations are concrete (not "more research needed" boilerplate)
+    - each limitation has a stated path to resolution
+    - at least one limitation is non-fully-mitigated
+    - at least one limitation is named in the Executive Summary
+  current_status_against_rubric:
+    concrete: PASS (D1-D4 all concrete)
+    path_to_resolution: PASS (roadmap carries each)
+    non_fully_mitigated: PASS (D1, D2, D3 all residual)
+    named_in_executive_summary: PENDING — /draft must enforce
+
+# =========================================================================
+# VERDICT
+# =========================================================================
+overall_verdict: CONDITIONAL_PROCEED
+
+rationale: |
+  The paper's thesis is defensible IF AND ONLY IF:
+    1. all four BLOCK findings (B1-B4) are resolved before /draft emits
+       the executive summary,
+    2. W1-W6 are addressed in the corresponding section,
+    3. the Limitations section carries D2 and D3 as prominent entries
+       and carries the "v0.4 has no real-attorney validation" fact as
+       the headline limitation.
+
+  Without those resolutions the paper reads as a vendor white paper
+  and the attorney audience will (correctly) discount it. With them,
+  the paper is a defensible first-person capability description that
+  invites independent evaluation — which is the most honest framing
+  the evidence actually supports.
+
+severity_distribution:
+  BLOCK: 4
+  WARN:  6
+  NOTE:  4
+
+ready_for_draft: true
+draft_must_honor:
+  - all 4 BLOCK resolutions before any capability claim
+  - all 6 WARN resolutions in-section
+  - all 4 alternative explanations named somewhere in the draft
+  - limitation_specificity_rubric.named_in_executive_summary

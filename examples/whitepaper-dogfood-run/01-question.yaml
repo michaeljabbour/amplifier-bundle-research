@@ -1,0 +1,196 @@
+# =========================================================================
+# /question artifact — sharpened thesis for white-paper recipe
+# =========================================================================
+# Session: e623279d-44ef-458d-b7b7-ddc8f73e105c
+# Recipe: white-paper
+# Audience: patent attorneys (Persona A)
+# Date: 2026-04-23
+# Bundle version at time of writing: 0.4.0 (released 2026-04-22)
+# Honest-pivot: ON
+# Exploratory-labeling: ON
+# =========================================================================
+
+metadata:
+  created_at: 2026-04-23T07:39:00-04:00
+  recipe: white-paper
+  persona: A  # non-scientist domain expert — patent attorney
+  target_audience: patent attorneys fluent in § 102 / § 103 / § 112
+  style_register: plain-language rigor (dual-register with footnote depth)
+  bundle_self_reference: true  # the paper IS about the bundle writing it
+
+rough_claim: |
+  amplifier-bundle-research v0.4.0 gives patent attorneys, researchers, and
+  reviewers the same disciplined workflow trained scientists use, without
+  requiring the training. Six modes, ten agents, hash-locked pre-registration,
+  honest-pivot, venue-aware drafting.
+
+one_line_thesis: |
+  For a patent attorney drafting a provisional or non-provisional utility
+  application, amplifier-bundle-research v0.4.0 produces a defensible
+  first-pass disclosure — with hash-sealed prior-art search scope,
+  enablement-aware detailed description, and a claim set that survives a
+  § 102 / § 103 / § 112 self-critique pass — in less reviewer-burdened time
+  than a raw-LLM-plus-checklist baseline, WITHOUT reducing claim scope beyond
+  what the attorney would have chosen manually.
+
+claim_frame:
+  type: comparative_capability_claim
+  is_a_claim_of:
+    - structured workflow that makes an attorney's own habits auditable
+    - pre-registration discipline reducing post-hoc claim narrowing that
+      would look like motivated reasoning to an opposing examiner
+    - catching § 112 enablement gaps earlier in the drafting loop
+    - persona-appropriate rigor scaffolding for non-scientists
+  is_NOT_a_claim_of:
+    - replacing an attorney's legal judgment
+    - generating filing-ready prose with no attorney review
+    - improving patentability of a weak invention
+    - reducing malpractice exposure (explicitly out of scope)
+
+# -------------------------------------------------------------------------
+# Four directional predictions, each independently testable
+# -------------------------------------------------------------------------
+predictions:
+  P1_prior_art_auditability:
+    prediction: |
+      A /study-plan-sealed prior-art search plan produces an audit trail
+      (search terms, CPC/IPC classes, date cutoff, excluded classes) that
+      a second attorney can reproduce. This reduces the "how did we miss
+      this reference" failure mode that surfaces during office-action
+      response or opposition.
+    mechanism: |
+      Hash-locking the search plan before the search executes means any
+      later narrowing (e.g., excluding a class after it surfaced
+      uncomfortable art) is visible as a timestamped amendment rather
+      than a silent scope shift.
+    measurable_by:
+      - second-attorney reproduction rate within ±10% reference count
+      - count of post-hoc search-scope amendments in the audit log
+      - time-to-discover a planted known reference (red-team test)
+
+  P2_enablement_catch_rate:
+    prediction: |
+      /critique with honest-critic flags § 112 enablement gaps that
+      attorneys would catch in final review but miss in a first draft.
+    mechanism: |
+      honest-critic runs a "could a PHOSITA reproduce this from the
+      description alone?" subroutine against the detailed-description,
+      surfacing missing parameters and undefined terms as BLOCK findings.
+    measurable_by:
+      - overlap between honest-critic BLOCK findings and attorney's own
+        final-review corrections
+      - false-positive rate (flags the attorney rejects)
+
+  P3_claim_scope_preservation:
+    prediction: |
+      Attorneys using the bundle do NOT end up with narrower claims than
+      they would have drafted manually. The rigor enforcement catches
+      overclaiming, not scope.
+    mechanism: |
+      /critique distinguishes "overclaim" (unsupported-by-spec) from
+      "aggressive-but-supported" and flags only the former. Claim-chart
+      builder populates dependent claims without narrowing independents.
+    measurable_by:
+      - independent-claim word count delta (bundle vs manual baseline)
+      - dependent-claim count delta
+      - attorney confidence in filed claim scope (Likert 1-5)
+
+  P4_time_cost:
+    prediction: |
+      End-to-end time from "we have an invention disclosure" to "first
+      attorney-reviewable draft" is lower than a raw-LLM-prompting
+      baseline. (Not a claim that the bundle beats a senior attorney
+      drafting from scratch — different comparison.)
+    mechanism: |
+      Pre-registration forces decisions up front; venue-formatter handles
+      USPTO format mechanics; honest-critic absorbs one review cycle that
+      would otherwise happen human-to-human.
+    measurable_by:
+      - wall-clock time to first attorney-reviewable draft
+      - count of attorney-review cycles before filing
+      - attorney-estimated "time I'd have spent on this"
+
+disconfirmation:
+  thesis_wrong_if_any_of:
+    - bundle narrows claim scope in ≥ 30% of runs
+    - bundle-produced briefs have > 2x the § 112 rejection rate of
+      baseline on a matched-invention comparison
+    - /study-plan pre-registration adds > 2x wall-clock time with no
+      measurable downstream rigor benefit
+    - honest-critic § 112 false-positive rate > 50%
+    - the bundle cannot handle trade-secret-sensitive matters without
+      leakage risk
+  thesis_is_exploratory_not_confirmatory_if:
+    - no real patent attorney has yet used the bundle on a real filing
+      (THIS IS THE CURRENT STATE for v0.4.0 — see paper limitations)
+
+scope:
+  applies_to:
+    - US utility applications (provisional and non-provisional)
+    - software, ML, and electromechanical inventions
+    - solo practitioners and small firms without a research-librarian
+    - first-draft generation with attorney in the loop
+  does_not_apply_to:
+    - design patents (different drafting discipline)
+    - plant patents (specialized domain)
+    - PCT national-phase filings (venue-formatter not localized yet)
+    - litigation-phase claim construction
+    - trade-secret-sensitive matters until an on-prem mode is validated
+
+# -------------------------------------------------------------------------
+# Novelty note — positioning against the four prior-art classes
+# -------------------------------------------------------------------------
+novelty_note: |
+  Existing patent-drafting tools split into four classes:
+
+  (1) IP management platforms (PatSnap, Anaqua, Clarivate) — docket and
+      portfolio management, not first-draft drafting with methodology
+      enforcement.
+  (2) AI-assisted drafting tools (Rowan, Solve Intelligence, various
+      2024-era startups) — filing-ready prose output, typically no
+      pre-registration / methodology-lock layer.
+  (3) Generic LLM chat (ChatGPT, Claude, Gemini) — no patent-specific
+      scaffolding; attorneys carry all discipline themselves.
+  (4) Law-firm internal checklists and templates — battle-tested but
+      invisible to audit, poorly scaled across attorneys, degrade with
+      turnover.
+
+  amplifier-bundle-research v0.4.0 occupies a different position: it does
+  NOT generate filing-ready prose autonomously. It enforces the methodology
+  scaffold (question → plan → execute → critique → draft → publish) and
+  makes the attorney's own habits auditable. Closest conceptual neighbor
+  is the medical-research pre-registration movement (OSF,
+  ClinicalTrials.gov) applied to patent prosecution.
+
+labeling:
+  status: exploratory
+  reason: |
+    v0.4.0 has completed simulated-persona acceptance testing (patent
+    attorney, ML researcher, peer reviewer personas — all performed by
+    the same author). No real patent attorney has used the bundle on a
+    real filing. The white paper therefore makes CAPABILITY claims (what
+    the bundle does when run) not OUTCOME claims (what happens when
+    attorneys use it in anger). This distinction is mandatory in the
+    /draft per the /critique gate.
+  path_to_confirmatory:
+    - v1.0 requires ≥ 3 real attorneys running the bundle on ≥ 1 real
+      invention each, reporting P1-P4 above
+    - time-cost measurements blinded to bundle familiarity
+    - claim-scope blind review by a second attorney
+
+# -------------------------------------------------------------------------
+# Risks that this /question pass is itself wrong
+# -------------------------------------------------------------------------
+question_itself_risks:
+  - Persona A framing may underestimate patent-attorney statistical
+    literacy — many prosecution attorneys have PhDs and engage with
+    rigor frameworks fluently. Mitigation: dual-register drafting.
+  - "Same discipline researchers use" framing may read as condescending.
+    Mitigation: frame the scientific-method parallel as peer-to-peer —
+    both are evidence-defensive crafts.
+  - Competitive framing vs PatSnap/Anaqua is asymmetric (they are IP
+    management, not drafting). Risk of straw-manning. Mitigation:
+    explicitly separate "drafting support" from "IP management" in the
+    competitive section.
+
+ready_for_plan: true
