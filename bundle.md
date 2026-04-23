@@ -1,7 +1,7 @@
 ---
 bundle:
   name: research
-  version: 0.4.0
+  version: 0.5.0
   description: |
     Superpowers for scientific rigor. From sharpened question to venue-ready
     output, with pre-registration discipline and honest-pivot defaults baked
@@ -42,6 +42,18 @@ agents:
     - research:citation-manager
     - research:venue-formatter
     - research:research-coordinator
+
+# --------------------------------------------------------------------------
+# Tools — first-class capabilities with Python implementations.
+#
+# tool-experiment-audit: Integrity audit for experiment directories.
+#   Detects HANDLER_ERROR cascades, response-quality issues, missing manifests,
+#   and implausible statistics. Run before trusting any experiment's numbers.
+# --------------------------------------------------------------------------
+tools:
+  include:
+    - path: modules/tool-experiment-audit
+      mount: amplifier_research_audit:mount
 ---
 
 # Research Bundle
@@ -59,6 +71,8 @@ persona-aware workflow (`/question → /plan → /execute → /critique → /dra
 /publish`); recipes compose the whole pipeline per output type.
 
 @research:context/instructions.md
+
+@research:context/experiment-integrity-awareness.md
 
 ---
 
