@@ -16,7 +16,7 @@ digraph research {
     node [fontname="Helvetica", fontsize=11, style="filled,rounded"]
     edge [fontname="Helvetica", fontsize=9]
 
-    root_research [label="Research Toolkit (main bundle)\nresearch v0.5.0\n1 tool · 0 agents\n~3400 tok aggregate", shape=box, fillcolor="#80cbc4", style="filled,rounded,bold", penwidth=2]
+    root_research [label="Research Toolkit (main bundle)\nresearch v0.5.0\n2 tools · 0 agents\n~3400 tok aggregate", shape=box, fillcolor="#80cbc4", style="filled,rounded,bold", penwidth=2]
 
     subgraph cluster_standalones {
         label="Standalone Bundles — used on their own"
@@ -52,6 +52,7 @@ digraph research {
         color="#999999"
 
         tool_experiment_audit [label="Experiment Integrity Audit\ntool-experiment-audit v0.1.0\n10 checks · PASS/FAIL/SUSPICIOUS\n~480 tok desc", shape=box, fillcolor="#bbdefb", style="filled,rounded"]
+        tool_experiment_resume [label="Experiment Resume/Repair\ntool-experiment-resume v0.1.0\nplan · subset · merge\n~420 tok desc", shape=box, fillcolor="#bbdefb", style="filled,rounded"]
     }
 
     subgraph cluster_context {
@@ -62,6 +63,7 @@ digraph research {
 
         ctx_instructions_md [label="How-to-use guide\ninstructions.md\n~2490 tok", shape=box, fillcolor="#e1bee7", style="filled,rounded"]
         ctx_integrity_awareness [label="Experiment Integrity Awareness\nexperiment-integrity-awareness.md\n~900 tok", shape=box, fillcolor="#e1bee7", style="filled,rounded"]
+        ctx_resume_awareness [label="Experiment Resume Awareness\nexperiment-resume-awareness.md\n~700 tok", shape=box, fillcolor="#e1bee7", style="filled,rounded"]
     }
 
     subgraph cluster_legend {
@@ -88,6 +90,8 @@ digraph research {
 
     root_research -> ctx_instructions_md [style=dotted, color=purple]
     root_research -> ctx_integrity_awareness [style=dotted, color=purple]
+    root_research -> ctx_resume_awareness [style=dotted, color=purple]
     root_research -> tool_experiment_audit [label="mounts", color="#1565c0"]
+    root_research -> tool_experiment_resume [label="mounts", color="#1565c0"]
     sta_dev -> root_research [label="extends", style=dashed]
 }
