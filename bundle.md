@@ -48,19 +48,26 @@ agents:
 #
 # tool-experiment-audit: Integrity audit for experiment directories.
 #   Detects HANDLER_ERROR cascades, response-quality issues, missing manifests,
-#   and implausible statistics. Run before trusting any experiment's numbers.
+#   and implausible statistics. Run before trusting any experiment’s numbers.
 #
 # tool-experiment-resume: Experiment resume/repair capability.
 #   When a sweep aborts mid-run, identify which items have clean records
 #   (preserve), which need re-running (errored or never-started), and merge
 #   preserved + new records into a unified result. Three subcommands:
 #   plan → subset → merge.
+#
+# tool-experiment-power: Statistical power analysis capability.
+#   Paired-binary (McNemar) and independent t-test power calculations.
+#   Four subcommands: required-n → mde → post-hoc → sensitivity.
+#   Pre-register sample sizes; compute MDE; build sensitivity tables.
 # --------------------------------------------------------------------------
 tools:
   - path: modules/tool-experiment-audit
     mount: amplifier_research_audit:mount
   - path: modules/tool-experiment-resume
     mount: amplifier_research_resume:mount
+  - path: modules/tool-experiment-power
+    mount: amplifier_research_power:mount
 ---
 
 # Research Bundle
@@ -82,6 +89,8 @@ persona-aware workflow (`/question → /plan → /execute → /critique → /dra
 @research:context/experiment-integrity-awareness.md
 
 @research:context/experiment-resume-awareness.md
+
+@research:context/experiment-power-awareness.md
 
 ---
 
