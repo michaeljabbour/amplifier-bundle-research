@@ -5,12 +5,12 @@ End-to-end CLI integration tests for amplifier-research-provenance-check.
 Invokes the CLI as a Python module so it works before the entry-point is
 installed.  All tests must FAIL on first run (module not yet implemented).
 """
+
 from __future__ import annotations
 
 import subprocess
 import sys
 from pathlib import Path
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -86,13 +86,17 @@ def test_audit_script_subcommand_runs(tmp_path: Path) -> None:
     output_file = tmp_path / "report.md"
     result = _run(
         "audit-script",
-        "--script", str(script),
-        "--repo", str(repo),
-        "--output", str(output_file),
+        "--script",
+        str(script),
+        "--repo",
+        str(repo),
+        "--output",
+        str(output_file),
     )
 
     assert result.returncode == 0, (
-        f"audit-script exited {result.returncode}:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+        f"audit-script exited {result.returncode}:\n"
+        f"stdout: {result.stdout}\nstderr: {result.stderr}"
     )
     assert output_file.exists(), f"Expected report at {output_file}"
     content = output_file.read_text()
@@ -107,8 +111,11 @@ def test_check_files_returns_zero_when_all_tracked(tmp_path: Path) -> None:
 
     result = _run(
         "check-files",
-        "--files", "data/file_a.json", "data/file_b.jsonl",
-        "--repo", str(repo),
+        "--files",
+        "data/file_a.json",
+        "data/file_b.jsonl",
+        "--repo",
+        str(repo),
     )
     assert result.returncode == 0, (
         f"Expected exit code 0 (all tracked), got {result.returncode}:\n"
@@ -127,8 +134,11 @@ def test_check_files_returns_one_when_untracked(tmp_path: Path) -> None:
 
     result = _run(
         "check-files",
-        "--files", "data/tracked.json", "data/untracked.json",
-        "--repo", str(repo),
+        "--files",
+        "data/tracked.json",
+        "data/untracked.json",
+        "--repo",
+        str(repo),
     )
     assert result.returncode == 1, (
         f"Expected exit code 1 (untracked found), got {result.returncode}:\n"
@@ -146,14 +156,14 @@ def test_pre_experiment_gate_blocks_on_untracked(tmp_path: Path) -> None:
     untracked.write_text("{}")
 
     script = repo / "run.py"
-    script.write_text(
-        'open("data/tracked.json")\nopen("data/untracked.json")\n'
-    )
+    script.write_text('open("data/tracked.json")\nopen("data/untracked.json")\n')
 
     result = _run(
         "pre-experiment-gate",
-        "--script", str(script),
-        "--repo", str(repo),
+        "--script",
+        str(script),
+        "--repo",
+        str(repo),
     )
     assert result.returncode != 0, (
         f"Expected non-zero exit from gate (untracked file), got {result.returncode}:\n"
@@ -174,7 +184,7 @@ def test_end_to_end_catches_untracked_artifact(tmp_path: Path) -> None:
     # Script that references both files
     script = repo / "sweep.py"
     script.write_text(
-        'import json\n'
+        "import json\n"
         'ref = open("data/tracked_reference.json")\n'
         'critical = open("data/persistent_blocks/important_data.json")\n'
     )
@@ -182,9 +192,12 @@ def test_end_to_end_catches_untracked_artifact(tmp_path: Path) -> None:
     output_file = tmp_path / "provenance_report.md"
     result = _run(
         "audit-script",
-        "--script", str(script),
-        "--repo", str(repo),
-        "--output", str(output_file),
+        "--script",
+        str(script),
+        "--repo",
+        str(repo),
+        "--output",
+        str(output_file),
     )
 
     assert result.returncode == 0, f"audit-script failed: {result.stderr}"
@@ -196,6 +209,4 @@ def test_end_to_end_catches_untracked_artifact(tmp_path: Path) -> None:
         f"Expected 'important_data.json' in report, got:\n{content[:800]}"
     )
     # And must be labeled UNTRACKED
-    assert "UNTRACKED" in content, (
-        f"Expected 'UNTRACKED' status in report, got:\n{content[:800]}"
-    )
+    assert "UNTRACKED" in content, f"Expected 'UNTRACKED' status in report, got:\n{content[:800]}"

@@ -5,8 +5,8 @@ Tests for report.py: generate Markdown provenance reports.
 These tests import from amplifier_research_provenance_check.report,
 which does NOT exist yet.  All tests must FAIL on first run.
 """
-from __future__ import annotations
 
+from __future__ import annotations
 
 # ---------------------------------------------------------------------------
 # Tests

@@ -5,13 +5,11 @@ Tests for git_check.py: check whether files are git-tracked.
 These tests import from amplifier_research_provenance_check.git_check,
 which does NOT exist yet.  All tests must FAIL on first run.
 """
+
 from __future__ import annotations
 
 import subprocess
 from pathlib import Path
-
-import pytest
-
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -5,8 +5,8 @@ Tests for ast_walker.py: parse Python source code for file path references.
 These tests import from amplifier_research_provenance_check.ast_walker,
 which does NOT exist yet.  All tests must FAIL on first run.
 """
-from __future__ import annotations
 
+from __future__ import annotations
 
 # ---------------------------------------------------------------------------
 # Tests
