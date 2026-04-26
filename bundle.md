@@ -1,7 +1,7 @@
 ---
 bundle:
   name: research
-  version: 0.5.0
+  version: 0.6.0
   description: |
     Superpowers for scientific rigor. From sharpened question to venue-ready
     output, with pre-registration discipline and honest-pivot defaults baked
@@ -48,7 +48,7 @@ agents:
 #
 # tool-experiment-audit: Integrity audit for experiment directories.
 #   Detects HANDLER_ERROR cascades, response-quality issues, missing manifests,
-#   and implausible statistics. Run before trusting any experiment’s numbers.
+#   and implausible statistics. Run before trusting any experiment's numbers.
 #
 # tool-experiment-resume: Experiment resume/repair capability.
 #   When a sweep aborts mid-run, identify which items have clean records
@@ -66,6 +66,13 @@ agents:
 #   categorizes empty-final records by failure-mode origin (six categories).
 #   Applies pre-registered H1a/H1b confirmation criteria (§2.3).
 #   Two subcommands: analyze → Markdown report; hypothesis-test → JSON verdicts.
+#
+# tool-experiment-provenance-check: Pre-experiment data provenance auditor.
+#   Parses experiment scripts with AST to find all data file references, then
+#   checks each against git (TRACKED / UNTRACKED / MISSING / IN_GITIGNORE).
+#   Prevents reproducibility gaps (e.g., hle_handcrafted.json, commit e189188).
+#   Three subcommands: audit-script → Markdown report; check-files → exit codes;
+#   pre-experiment-gate → hard launch gate (exits 1 if any untracked file).
 # --------------------------------------------------------------------------
 tools:
   - path: modules/tool-experiment-audit
@@ -76,6 +83,8 @@ tools:
     mount: amplifier_research_power:mount
   - path: modules/tool-experiment-stage-analyzer
     mount: amplifier_research_stage_analyzer:mount
+  - path: modules/tool-experiment-provenance-check
+    mount: amplifier_research_provenance_check:mount
 ---
 
 # Research Bundle
@@ -101,6 +110,8 @@ persona-aware workflow (`/question → /plan → /execute → /critique → /dra
 @research:context/experiment-power-awareness.md
 
 @research:context/experiment-stage-analyzer-awareness.md
+
+@research:context/experiment-provenance-awareness.md
 
 ---
 
