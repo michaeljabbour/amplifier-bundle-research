@@ -1,0 +1,44 @@
+[project]
+name = "tool-experiment-block-hypothesis"
+version = "0.1.0"
+description = "Block hypothesis evaluation: per-rule firing, ablation, domain sensitivity, verdict (Amplifier research bundle)"
+requires-python = ">=3.10"
+dependencies = [
+    "scipy>=1.9.0",
+]
+
+[project.scripts]
+amplifier-research-block-hypothesis = "amplifier_research_block_hypothesis.cli:main"
+
+[project.entry-points."amplifier.modules"]
+tool-experiment-block-hypothesis = "amplifier_research_block_hypothesis:mount"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pyright>=1.1.0",
+    "ruff>=0.1.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/amplifier_research_block_hypothesis"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.pyright]
+typeCheckingMode = "standard"
+pythonVersion = "3.10"
+include = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
