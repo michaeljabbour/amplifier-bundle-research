@@ -60,6 +60,12 @@ agents:
 #   Paired-binary (McNemar) and independent t-test power calculations.
 #   Four subcommands: required-n → mde → post-hoc → sensitivity.
 #   Pre-register sample sizes; compute MDE; build sensitivity tables.
+#
+# tool-experiment-stage-analyzer: Stage-trace empty-response root-cause analyzer.
+#   Ingests stage_traces.jsonl (generator / critic / revert_decision) and
+#   categorizes empty-final records by failure-mode origin (six categories).
+#   Applies pre-registered H1a/H1b confirmation criteria (§2.3).
+#   Two subcommands: analyze → Markdown report; hypothesis-test → JSON verdicts.
 # --------------------------------------------------------------------------
 tools:
   - path: modules/tool-experiment-audit
@@ -68,6 +74,8 @@ tools:
     mount: amplifier_research_resume:mount
   - path: modules/tool-experiment-power
     mount: amplifier_research_power:mount
+  - path: modules/tool-experiment-stage-analyzer
+    mount: amplifier_research_stage_analyzer:mount
 ---
 
 # Research Bundle
@@ -91,6 +99,8 @@ persona-aware workflow (`/question → /plan → /execute → /critique → /dra
 @research:context/experiment-resume-awareness.md
 
 @research:context/experiment-power-awareness.md
+
+@research:context/experiment-stage-analyzer-awareness.md
 
 ---
 
