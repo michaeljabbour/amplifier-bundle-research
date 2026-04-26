@@ -1,7 +1,7 @@
 ---
 bundle:
   name: research
-  version: 0.6.0
+  version: 0.7.0
   description: |
     Superpowers for scientific rigor. From sharpened question to venue-ready
     output, with pre-registration discipline and honest-pivot defaults baked
@@ -73,6 +73,13 @@ agents:
 #   Prevents reproducibility gaps (e.g., hle_handcrafted.json, commit e189188).
 #   Three subcommands: audit-script → Markdown report; check-files → exit codes;
 #   pre-experiment-gate → hard launch gate (exits 1 if any untracked file).
+#
+# tool-experiment-block-hypothesis: Scientific evaluation of persistent reflection blocks.
+#   Per-rule heuristic firing analysis, multi-condition ablation comparison,
+#   per-domain sensitivity with BH-FDR correction, and pre-registered verdict
+#   (WORKS / HETEROGENEOUS / DOES_NOT_WORK / UNDERPOWERED).
+#   Four subcommands: analyze-rule-firing → ablation-summary →
+#   domain-sensitivity → block-evaluation-verdict.
 # --------------------------------------------------------------------------
 tools:
   - path: modules/tool-experiment-audit
@@ -85,6 +92,8 @@ tools:
     mount: amplifier_research_stage_analyzer:mount
   - path: modules/tool-experiment-provenance-check
     mount: amplifier_research_provenance_check:mount
+  - path: modules/tool-experiment-block-hypothesis
+    mount: amplifier_research_block_hypothesis:mount
 ---
 
 # Research Bundle
@@ -112,6 +121,8 @@ persona-aware workflow (`/question → /plan → /execute → /critique → /dra
 @research:context/experiment-stage-analyzer-awareness.md
 
 @research:context/experiment-provenance-awareness.md
+
+@research:context/experiment-block-hypothesis-awareness.md
 
 ---
 

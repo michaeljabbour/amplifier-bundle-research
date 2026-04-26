@@ -16,7 +16,7 @@ digraph research {
     node [fontname="Helvetica", fontsize=11, style="filled,rounded"]
     edge [fontname="Helvetica", fontsize=9]
 
-    root_research [label="Research Toolkit (main bundle)\nresearch v0.6.0\n5 tools · 0 agents\n~5000 tok aggregate", shape=box, fillcolor="#80cbc4", style="filled,rounded,bold", penwidth=2]
+    root_research [label="Research Toolkit (main bundle)\nresearch v0.7.0\n6 tools · 0 agents\n~5500 tok aggregate", shape=box, fillcolor="#80cbc4", style="filled,rounded,bold", penwidth=2]
 
     subgraph cluster_standalones {
         label="Standalone Bundles — used on their own"
@@ -55,6 +55,7 @@ digraph research {
         tool_experiment_resume [label="Experiment Resume/Repair\ntool-experiment-resume v0.1.0\nplan · subset · merge\n~420 tok desc", shape=box, fillcolor="#bbdefb", style="filled,rounded"]
         tool_experiment_power [label="Experiment Power Analysis\ntool-experiment-power v0.1.0\nrequired-n · mde · post-hoc · sensitivity\n~500 tok desc", shape=box, fillcolor="#bbdefb", style="filled,rounded"]
         tool_experiment_stage_analyzer [label="Stage-Trace Failure Analyzer\ntool-experiment-stage-analyzer v0.1.0\nanalyze · hypothesis-test\n~520 tok desc", shape=box, fillcolor="#bbdefb", style="filled,rounded"]
+        tool_experiment_block_hypothesis [label="Block Hypothesis Evaluator\ntool-experiment-block-hypothesis v0.1.0\nanalyze-rule-firing · ablation-summary\ndomain-sensitivity · block-evaluation-verdict\n~540 tok desc", shape=box, fillcolor="#bbdefb", style="filled,rounded"]
         tool_experiment_provenance_check [label="Pre-Experiment Provenance Audit\ntool-experiment-provenance-check v0.1.0\naudit-script · check-files · pre-experiment-gate\n~560 tok desc", shape=box, fillcolor="#bbdefb", style="filled,rounded"]
     }
 
@@ -69,6 +70,7 @@ digraph research {
         ctx_resume_awareness [label="Experiment Resume Awareness\nexperiment-resume-awareness.md\n~700 tok", shape=box, fillcolor="#e1bee7", style="filled,rounded"]
         ctx_power_awareness [label="Experiment Power Awareness\nexperiment-power-awareness.md\n~800 tok", shape=box, fillcolor="#e1bee7", style="filled,rounded"]
         ctx_stage_analyzer_awareness [label="Stage Analyzer Awareness\nexperiment-stage-analyzer-awareness.md\n~900 tok", shape=box, fillcolor="#e1bee7", style="filled,rounded"]
+        ctx_block_hypothesis_awareness [label="Block Hypothesis Awareness\nexperiment-block-hypothesis-awareness.md\n~850 tok", shape=box, fillcolor="#e1bee7", style="filled,rounded"]
         ctx_provenance_awareness [label="Provenance Check Awareness\nexperiment-provenance-awareness.md\n~950 tok", shape=box, fillcolor="#e1bee7", style="filled,rounded"]
     }
 
@@ -105,5 +107,7 @@ digraph research {
     root_research -> ctx_power_awareness [style=dotted, color=purple]
     root_research -> ctx_stage_analyzer_awareness [style=dotted, color=purple]
     root_research -> ctx_provenance_awareness [style=dotted, color=purple]
+    root_research -> tool_experiment_block_hypothesis [label="mounts", color="#1565c0"]
+    root_research -> ctx_block_hypothesis_awareness [style=dotted, color=purple]
     sta_dev -> root_research [label="extends", style=dashed]
 }
