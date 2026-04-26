@@ -1,0 +1,42 @@
+[project]
+name = "tool-experiment-stage-analyzer"
+version = "0.1.0"
+description = "Experiment stage-trace analyzer: categorize empty-response failures by stage origin (Amplifier research bundle)"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+amplifier-research-stage-analyzer = "amplifier_research_stage_analyzer.cli:main"
+
+[project.entry-points."amplifier.modules"]
+tool-experiment-stage-analyzer = "amplifier_research_stage_analyzer:mount"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pyright>=1.1.0",
+    "ruff>=0.1.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/amplifier_research_stage_analyzer"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.pyright]
+typeCheckingMode = "standard"
+pythonVersion = "3.10"
+include = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
