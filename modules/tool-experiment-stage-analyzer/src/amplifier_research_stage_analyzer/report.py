@@ -61,6 +61,9 @@ def generate_report(analysis: dict, output_path: str | None = None) -> str:
             ``hypothesis`` (from
             :func:`~amplifier_research_stage_analyzer.analyze.test_h1_hypotheses`),
             ``total_records``, and ``total_empty``.
+            Optional keys: ``dropped_count`` and ``dropped_item_ids`` — when
+            present and non-zero a "Dropped records" note is appended to the
+            Summary section.
         output_path: If provided, write the report to this file path.
 
     Returns:
@@ -76,6 +79,8 @@ def generate_report(analysis: dict, output_path: str | None = None) -> str:
     counts = cat_result["counts"]
     total_records = analysis["total_records"]
     total_empty = analysis["total_empty"]
+    dropped_count: int = analysis.get("dropped_count", 0)
+    dropped_item_ids: list[str] = analysis.get("dropped_item_ids", [])
 
     lines: list[str] = []
 
@@ -91,6 +96,14 @@ def generate_report(analysis: dict, output_path: str | None = None) -> str:
         f"- **Total empty-final records:** {total_empty} "
         f"({_pct(total_empty, total_records)} of all records)"
     )
+    if dropped_count > 0:
+        ids_preview = ", ".join(dropped_item_ids[:5])
+        if len(dropped_item_ids) > 5:
+            ids_preview += f", ... ({len(dropped_item_ids) - 5} more)"
+        lines.append(
+            f"- **Dropped incomplete records:** {dropped_count} "
+            f"(null stages.generator — item_ids: {ids_preview})"
+        )
     lines.append("")
     lines.append(
         "Empty-final records are those where `final_is_empty == True`. "

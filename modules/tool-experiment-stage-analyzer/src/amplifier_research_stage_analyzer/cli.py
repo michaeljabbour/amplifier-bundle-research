@@ -24,16 +24,18 @@ def _cmd_analyze(args: argparse.Namespace) -> None:
     from amplifier_research_stage_analyzer.ingest import ingest_stage_traces
     from amplifier_research_stage_analyzer.report import generate_report
 
-    records = ingest_stage_traces(args.traces)
-    cat_result = categorize_empty(records)
+    ingest_result = ingest_stage_traces(args.traces)
+    cat_result = categorize_empty(ingest_result)
     hyp_result = test_h1_hypotheses(cat_result)
 
     total_empty = sum(cat_result["counts"].values())
     analysis = {
         "categorize": cat_result,
         "hypothesis": hyp_result,
-        "total_records": len(records),
+        "total_records": len(ingest_result),
         "total_empty": total_empty,
+        "dropped_count": ingest_result.dropped_count,
+        "dropped_item_ids": ingest_result.dropped_item_ids,
     }
 
     report_text = generate_report(analysis, output_path=args.output)
@@ -55,8 +57,8 @@ def _cmd_hypothesis_test(args: argparse.Namespace) -> None:
     from amplifier_research_stage_analyzer.categorize import categorize_empty
     from amplifier_research_stage_analyzer.ingest import ingest_stage_traces
 
-    records = ingest_stage_traces(args.traces)
-    cat_result = categorize_empty(records)
+    ingest_result = ingest_stage_traces(args.traces)
+    cat_result = categorize_empty(ingest_result)
     hyp_result = test_h1_hypotheses(cat_result)
 
     # Serialize evidence to JSON-safe form (list of item_id strings)
@@ -66,6 +68,8 @@ def _cmd_hypothesis_test(args: argparse.Namespace) -> None:
         "h1b_confirmed": hyp_result["h1b_confirmed"],
         "h1b_fraction": hyp_result["h1b_fraction"],
         "evidence": [{"item_id": ev.get("item_id", "")} for ev in hyp_result["evidence"]],
+        "dropped_count": ingest_result.dropped_count,
+        "dropped_item_ids": ingest_result.dropped_item_ids,
     }
 
     json_text = json.dumps(output_data, indent=2)

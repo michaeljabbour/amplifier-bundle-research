@@ -9,15 +9,14 @@ which does NOT exist yet.  All tests must FAIL on first run.
 from __future__ import annotations
 
 import json
-import textwrap
 from pathlib import Path
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_generator_stage(
     output: str = "x" * 200,
@@ -96,9 +95,7 @@ def test_ingest_valid_traces(tmp_path: Path) -> None:
     """Five valid records are ingested and returned as a list of 5."""
     from amplifier_research_stage_analyzer.ingest import ingest_stage_traces
 
-    records = [
-        _make_record(item_id=f"item_{i:03d}", approach_id="A1") for i in range(5)
-    ]
+    records = [_make_record(item_id=f"item_{i:03d}", approach_id="A1") for i in range(5)]
     fpath = _write_jsonl(tmp_path, records)
 
     result = ingest_stage_traces(str(fpath))
@@ -156,7 +153,7 @@ def test_ingest_handles_null_stages_for_a0(tmp_path: Path) -> None:
 
 
 def test_ingest_rejects_missing_generator(tmp_path: Path) -> None:
-    """Records where stages.generator is null raise ValueError (generator always required)."""
+    """In strict mode, stages.generator=null raises ValueError (backward-compat)."""
     from amplifier_research_stage_analyzer.ingest import ingest_stage_traces
 
     bad_record = _make_record(item_id="bad_001")
@@ -164,7 +161,7 @@ def test_ingest_rejects_missing_generator(tmp_path: Path) -> None:
     fpath = _write_jsonl(tmp_path, [bad_record])
 
     with pytest.raises(ValueError, match="generator"):
-        ingest_stage_traces(str(fpath))
+        ingest_stage_traces(str(fpath), strict=True)
 
 
 def test_ingest_rejects_invalid_json_lines(tmp_path: Path) -> None:
