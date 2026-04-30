@@ -5,6 +5,7 @@ tags: ["figures", "paperbanana", "scientific-paper", "quality-validation", "mult
 
 # Input context required for recipe execution
 context:
+  cache_only: false              # v0.8.1: opt-in cache-only mode for committee verification
   paper_content: ""           # Required: paper text for context extraction
   figure_type: "methodology"  # Options: methodology, plot, architecture
   conference: "neurips"       # Target conference for style guidelines

@@ -8,6 +8,8 @@ description: |
 # ---------------------------------------------------------------------------
 # Mode sequence — full six-mode pipeline, search-heavy
 # ---------------------------------------------------------------------------
+cache_only: false                # v0.8.1: opt-in cache-only mode for committee verification
+
 modes:
   - id: question
     purpose: Sharpen review question into answerable scope

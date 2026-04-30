@@ -1,0 +1,64 @@
+name: bundle-overlay-proposer
+version: 0.1.0
+description: |
+  Companion sub-recipe for orchestrated-loop.yaml. Given a list of open
+  residuals and the baseline bundle overlay, propose a new overlay that
+  addresses the highest-severity open residuals.
+
+  Runs in an ISOLATED sub-session. Receives only `open_residuals`,
+  `baseline_bundle_overlay`, and `prior_round_metrics` from the parent loop.
+  Does NOT inherit the parent's residual ledger or prior bundle history —
+  this is the recipe-engine's pre-registration discipline at work.
+
+  Outputs an overlay PATH (a YAML file the caller will load and pass to the
+  next benchmark run). The overlay file itself contains a unified bundle.md
+  diff (declarative) plus a justification block tying each declarative
+  change to the residual it addresses.
+
+context:
+  open_residuals: []                    # required: list per residual-ledger schema
+  baseline_bundle_overlay: ""           # required: path to current SUT bundle overlay
+  prior_round_metrics: []               # optional: round_metrics from prior loop iterations
+
+stages:
+
+  - name: rank-residuals
+    description: "Rank open residuals by severity-weighted closure-leverage"
+    steps:
+      - id: rank
+        agent: research:research-coordinator
+        prompt: |
+          Read {{open_residuals}}. Rank by severity (3=load-bearing first, then 2, then 1).
+          Within severity, break ties by:
+            - residual age (oldest first; old un-closed residuals indicate harder problems)
+            - whether prior rounds attempted closure and failed (mark as "previously-attempted")
+          Return the top 3-5 ranked residuals as the targets for this round's overlay.
+        outputs:
+          - ranked_targets
+
+  - name: propose-overlay
+    description: "Compose a bundle overlay addressing the top-ranked residuals"
+    steps:
+      - id: propose
+        agent: research:research-coordinator
+        prompt: |
+          Given {{ranked_targets}} and the baseline bundle at {{baseline_bundle_overlay}},
+          propose ONE bundle overlay (declarative YAML in the bundle.md format) that
+          addresses these residuals. Constraints:
+            - Vary the CHEAPEST knobs first (bundle composition, context files, instructions).
+              Only escalate to provider/model changes if all cheaper knobs have been tried
+              in prior rounds.
+            - Each declarative change MUST be paired with a `rationale` field naming the
+              residual_id it addresses.
+            - Output overlay file path: {{baseline_bundle_overlay}}.round-{N}.yaml where
+              N is the next round number.
+            - Include a manifest hash of the baseline overlay + diff for reproducibility.
+
+  - name: emit-overlay-path
+    description: "Return the new overlay path to the parent loop"
+    steps:
+      - id: emit
+        agent: research:research-coordinator
+        prompt: |
+          Emit the path to the new overlay as state.overlay_path. The parent loop
+          will load this overlay and run the benchmark with it.

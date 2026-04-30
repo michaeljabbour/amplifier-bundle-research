@@ -149,3 +149,12 @@ See [`docs/HANDOFF.md`](docs/HANDOFF.md) for what's verified, what's not yet bee
 ## License
 
 MIT. Credits and lineage in [`docs/LINEAGE.md`](docs/LINEAGE.md).
+
+## See also: amplifier-bundle-scientificpaper
+
+This bundle is the broader research-lifecycle substrate (`/question` → `/study-plan` → `/execute` → `/critique` → `/draft` → `/publish`, with hypothesis sharpening, methodology lockdown, statistical tooling, and reproducibility infrastructure). It is the right choice for any researcher writing a defensible artifact end-to-end.
+
+If you only want the paper-authoring slice — no modes, no pre-registration, no statistical machinery, just LaTeX/conferences/figures/citations — install [amplifier-bundle-scientificpaper](https://github.com/michaeljabbour/amplifier-bundle-scientificpaper) instead. It has a coherent independent purpose: the clean no-modes-required interface for "I just want to write a paper."
+
+The two bundles share substantial infrastructure (Python scripts, conference formats, LaTeX templates, PaperBanana figure-generation module, paper-authoring behaviors) but differ in scope: research includes the full research-lifecycle pipeline (idea generation, novelty checking, peer-review feedback, statistical validation, the orchestrated H3 loop); scientificpaper covers only paper authoring. Detailed inventory + gene-transfer history in `docs/V0.8.0-PLAN.md`.
+

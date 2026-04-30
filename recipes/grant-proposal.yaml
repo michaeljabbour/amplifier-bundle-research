@@ -8,6 +8,8 @@ description: |
 # ---------------------------------------------------------------------------
 # Mode sequence — reduced pipeline (no /execute — no data yet)
 # ---------------------------------------------------------------------------
+cache_only: false                # v0.8.1: opt-in cache-only mode for committee verification
+
 modes:
   - id: question
     purpose: Sharpen research question and articulate significance
