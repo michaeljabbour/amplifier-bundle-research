@@ -33,9 +33,7 @@ stages:
             - residual age (oldest first; old un-closed residuals indicate harder problems)
             - whether prior rounds attempted closure and failed (mark as "previously-attempted")
           Return the top 3-5 ranked residuals as the targets for this round's overlay.
-        outputs:
-          - ranked_targets
-
+        output: ranked_targets
   - name: propose-overlay
     description: "Compose a bundle overlay addressing the top-ranked residuals"
     steps:

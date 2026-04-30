@@ -30,9 +30,7 @@ stages:
           Generate {{n_ideas}} candidate research ideas with the 3-axis
           scoring, run up to 3 reflection rounds, and return the structured
           output. OE mode: {{enable_oe_mode}}.
-        outputs:
-          - candidate_ideas
-
+        output: candidate_ideas
   - name: novelty-verification
     description: "Verify each candidate against Semantic Scholar (literature-scout)"
     steps:
@@ -44,10 +42,7 @@ stages:
           more directly-prior papers), or inconclusive. Return the verdict per
           idea plus the relevant adjacent prior work (for any future paper
           related-work section).
-        outputs:
-          - novelty_verdicts
-          - adjacent_prior_work
-
+        output: novelty_verdicts
   - name: filter-and-rank
     description: "Filter non-novel ideas; rank novel ideas by composite score"
     steps:
@@ -61,14 +56,17 @@ stages:
 
   - name: sharpening
     description: "Sharpen the top-ranked idea into a falsifiable hypothesis"
-    approval_required: true
-    approval_prompt: |
-      Top {{n_ideas}} candidate ideas after novelty filtering:
-      {{ranked_ideas}}
+    approval:
+      required: true
+      timeout: 0
+      default: deny
+      prompt: |
+        Top {{n_ideas}} candidate ideas after novelty filtering:
+        {{ranked_ideas}}
 
-      Recommended for sharpening: idea {{ranked_ideas[0].id}}
+        Recommended for sharpening: idea {{ranked_ideas[0].id}}
 
-      Approve to sharpen via hypothesis-designer / Deny to revisit ideation
+        Approve to sharpen via hypothesis-designer / Deny to revisit ideation
     steps:
       - id: sharpen-into-hypothesis
         agent: research:hypothesis-designer

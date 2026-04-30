@@ -8,7 +8,9 @@ description: |
 # ---------------------------------------------------------------------------
 # Mode sequence — full six-mode pipeline
 # ---------------------------------------------------------------------------
-cache_only: false                # v0.8.1: opt-in cache-only mode for committee verification
+
+context:
+  cache_only: false                # v0.8.1: opt-in cache-only mode for committee verification
 
 modes:
   - id: question

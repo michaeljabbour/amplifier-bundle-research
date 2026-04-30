@@ -8,8 +8,10 @@ description: |
 # ---------------------------------------------------------------------------
 # Mode sequence — full six-mode pipeline with strict controls
 # ---------------------------------------------------------------------------
-cache_only: false                # v0.8.1: opt-in cache-only mode for committee verification
-judge_cross_vendor_required: true # v0.8.1: enforce cross-vendor LLM judge per behaviors/cross-vendor-judge.md
+
+context:
+  cache_only: false                # v0.8.1: opt-in cache-only mode for committee verification
+  judge_cross_vendor_required: true # v0.8.1: enforce cross-vendor LLM judge per behaviors/cross-vendor-judge.md
 
 modes:
   - id: question

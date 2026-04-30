@@ -1,11 +1,12 @@
 name: residual-adjudicator
-version: 0.1.0
+version: 0.2.0
 description: |
-  Companion sub-recipe for orchestrated-loop.yaml. Adjudicates which residuals
-  closed in the most recent round. Runs in an ISOLATED sub-session distinct
-  from the proposer's session — this is the blinded-adjudication contract.
+  Companion sub-recipe for orchestrated-loop-iteration.yaml. Adjudicates which
+  residuals closed in the most recent round. Runs in an ISOLATED sub-session
+  distinct from the proposer's session — this is the blinded-adjudication
+  contract.
 
-  When `blinded: true`, the prompts strip:
+  When `blinded` is "true", the prompts strip:
     - the proposer's identity (which agent/model proposed the overlay)
     - the round_introduced of each residual
     - the prior_round_metrics
@@ -13,74 +14,67 @@ description: |
   round's metrics vs the residual's frozen closure_criterion, not on context
   about who proposed what or how recent the residual is.
 
-  Closure rules (verbatim from v3 paper §"Residual-ledger schema"):
+  Closure rules (verbatim from v3 paper "Residual-ledger schema"):
     - residual = "closed" iff its frozen original_wording's failure mode is
       fixed AND not reopened by a later round.
-    - REFORMULATION does NOT count as closure. If the resolution is to rename
-      or rescope the residual, that's allowed_resolution = "reformulated",
-      preserving the original wording for audit.
-    - SUPERSEDED: a residual replaced by a more-specific successor residual
-      (the predecessor counts as closed iff its successor is also tracked).
+    - REFORMULATION does NOT count as closure.
+    - SUPERSEDED: a residual replaced by a more-specific successor residual.
 
 context:
-  open_residuals: []                    # required
-  this_round_metrics: {}                # required
-  no_op_metrics: {}                     # required if no-op arm enabled
-  blinded: true                         # default true; enforces blinded adjudication
-  residual_schema: {}                   # required: the locked schema from stage-1
+  cache_only: false                  # v0.8.2: opt-in cache-only mode
+  open_residuals: []
+  this_round_metrics: {}
+  no_op_metrics: {}
+  blinded: "true"                    # string literal for comparison
+  residual_schema: {}
 
-stages:
+steps:
 
-  - name: prepare-blinded-input
-    description: "Strip proposer identity and round-introduction info if blinded"
-    steps:
-      - id: blind
-        agent: research:research-coordinator
-        prompt: |
-          If {{blinded}} is true:
-            - Remove `round_introduced`, `proposer_identity`, and any
-              `prior_round_metrics` references from each residual in
-              {{open_residuals}} before proceeding.
-            - Replace residual_id with an opaque hash for this adjudication
-              session (the parent loop maintains the hash → real_id mapping).
-          Output the blinded residual list as state.blinded_residuals.
+  - id: prepare-blinded-input
+    agent: research:research-coordinator
+    prompt: |
+      If blinded=={{blinded}} is "true":
+        - Remove `round_introduced`, `proposer_identity`, and any
+          `prior_round_metrics` references from each residual in
+          {{open_residuals}} before proceeding.
+        - Replace residual_id with an opaque hash for this adjudication
+          session (the parent loop maintains the hash → real_id mapping).
+      Output the blinded residual list as a JSON array.
+    output: blinded_residuals
+    parse_json: true
 
-  - name: adjudicate-each
-    description: "For each residual, decide closed | open | reformulated | superseded"
-    steps:
-      - id: adjudicate
-        agent: research:honest-critic
-        prompt: |
-          For each residual in {{state.blinded_residuals}}:
-            1. Read the closure_criterion (frozen field from the schema).
-            2. Read this round's metrics in {{this_round_metrics}}.
-            3. Apply the closure rule:
-                 - closed: closure_criterion is met AND not contradicted
-                 - open: closure_criterion not met (state remains open)
-                 - reformulated: the residual's framing is wrong; preserve original
-                   wording, mark reformulated, name a successor residual
-                 - superseded: a strictly-more-specific residual now exists that
-                   subsumes this one; mark superseded with successor_id
-            4. ALSO check the no-op arm: would this residual have closed under
-               {{no_op_metrics}} at the same threshold? If yes, the closure here
-               is suspect (drift, not loop work) — flag it.
+  - id: adjudicate-each
+    agent: research:honest-critic
+    prompt: |
+      For each residual in {{blinded_residuals}}:
+        1. Read the closure_criterion (frozen field from the schema).
+        2. Read this round's metrics: {{this_round_metrics}}
+        3. Apply the closure rule:
+             - closed: closure_criterion is met AND not contradicted
+             - open: closure_criterion not met (state remains open)
+             - reformulated: the residual's framing is wrong; preserve original
+               wording, mark reformulated, name a successor residual
+             - superseded: a strictly-more-specific residual now exists that
+               subsumes this one; mark superseded with successor_id
+        4. ALSO check the no-op arm: would this residual have closed under
+           {{no_op_metrics}} at the same threshold? If yes, the closure here
+           is suspect (drift, not loop work) — flag it.
 
-          For each, output:
-            - decision: {closed, open, reformulated, superseded}
-            - evidence_quote: the specific number(s) from this round's metrics
-              that support the decision
-            - no_op_check: whether the no-op arm would have closed too
+      Emit a single JSON dict with these top-level keys:
+        decisions: [list of {residual_id, decision, evidence_quote, no_op_check}]
+    output: adjudication_decisions
+    parse_json: true
 
-  - name: emit-decisions
-    description: "Bucket decisions for the parent loop"
-    steps:
-      - id: emit
-        agent: research:research-coordinator
-        prompt: |
-          Bucket the {{adjudicate}} output:
-            - newly_closed: list of residual_ids decided closed AND no-op-check passed
-            - newly_reformulated: list with successor_residual_ids
-            - newly_reopened: residuals previously-closed but now no longer satisfying
-              their closure_criterion (regression — high-severity flag)
-            - still_open: residuals that remain open after this round
-          Return all four lists.
+  - id: bucket-decisions
+    agent: research:research-coordinator
+    prompt: |
+      From {{adjudication_decisions}}, bucket the decisions into:
+        newly_closed: [list of residual_ids decided closed AND no_op_check passed]
+        newly_reformulated: [list of {residual_id, successor_residual_id}]
+        newly_reopened: [residuals previously-closed but now no longer satisfying
+                         their closure_criterion (regression — high-severity flag)]
+        still_open: [residuals that remain open after this round]
+
+      Emit a single JSON dict with these four keys.
+    output: closure_buckets
+    parse_json: true

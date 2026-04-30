@@ -1,6 +1,6 @@
 ---
 meta:
-  name: paper-architect
+  name: research-paper-architect
   description: |
     **MUST be used for scientific paper structure planning and outline creation.**
     

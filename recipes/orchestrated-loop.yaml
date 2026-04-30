@@ -1,29 +1,29 @@
+# orchestrated-loop.yaml — H3 enabler from the v3 program paper
+#
+# Phase-1 → Phase-2 → reconfigure → re-run, expressed as the canonical
+# Amplifier recipe pattern: a `type: recipe` step with `while_condition` +
+# `max_while_iterations` + `update_context`, calling
+# `orchestrated-loop-iteration.yaml` as the iteration body.
+#
+# Canonical reference: @recipes:examples/attractor/attractor.yaml Stage 3
+# (factory). This recipe follows the same shape end to end.
+#
+# H3 evidence target (v3 paper §H3): closure rate >= 2x no-op control AND
+# knowledge-tracking on date-stamped questions rises after corpus update.
+
 name: orchestrated-loop
-version: 0.1.0
+version: 0.2.0
 description: |
-  The H3 enabler. Phase-1 → Phase-2 → reconfigure → re-run, expressed as the
-  Amplifier-native while_condition + sub-recipe pattern. Operationalizes the
-  v3 program paper's outcome hypothesis: across N rounds of bundle-level
-  intervention, the loop closes externally-named residuals at a rate above
-  no-op drift, AND tracks a date-stamped corpus over rounds.
+  Phase-1 → Phase-2 orchestrated convergence loop. Operationalizes the v3
+  program paper's H3 outcome hypothesis. Each iteration: propose a bundle
+  overlay addressing open residuals, run the benchmark with the overlay,
+  run a no-op-drift arm in parallel, adjudicate residual closure (blinded),
+  judge satisfaction (cross-vendor). Loop until converged or max_rounds.
 
-  Canonical reference: @recipes:examples/attractor/attractor.yaml Stage 3
-  (factory). This recipe is the same shape: convergence over externally-
-  validated criteria using while_condition + isolated sub-recipe composition
-  + LLM-as-judge with cross-vendor sensitivity + satisfaction threshold.
-
-  Properties baked into the engine (not into discipline):
-    - Sub-recipe context isolation: sub-recipes receive only explicitly
-      passed variables. Earlier-round findings don't bleed into later
-      rounds. THIS IS PRE-REGISTRATION DISCIPLINE.
-    - Approval gates at stage boundaries enforce design-committed-before-
-      execution. The stage boundary IS the pre-registration boundary.
-    - Filesystem-mediated state (events.jsonl + state.json) produces an
-      audit trail that survives interruption.
-
-  H3 evidence target (see v3 paper §H3): closure rate ≥ 2× no-op control
-  baseline AND knowledge-tracking on date-stamped release-note questions
-  rises after corpus update timing.
+  Companion sub-recipes (must be in the same recipes directory):
+    - orchestrated-loop-iteration.yaml (the iteration body)
+    - bundle-overlay-proposer.yaml     (proposer of new overlays)
+    - residual-adjudicator.yaml        (blinded adjudication)
 
 context:
   benchmark_corpus: ""
@@ -31,32 +31,42 @@ context:
   knowledge_tracking_corpus: ""
   max_rounds: 5
   closure_target: 0.50
-  enable_no_op_arm: true
-  enable_blinded_adjudication: true
+  enable_no_op_arm: "true"
+  enable_blinded_adjudication: "true"
+
+  # Loop state (mutated via update_context: in the while step)
+  converged: "false"
+  open_residuals: []
+  closed_residuals: []
+  reformulated_residuals: []
+  reopened_residuals: []
+  round_metrics: []
 
 stages:
 
   - name: pre-registration
-    description: "Lock loop convergence criteria + residual ledger schema before round 1"
-    approval_required: true
-    approval_prompt: |
-      Pre-registration of orchestrated-loop run
+    approval:
+      required: true
+      timeout: 0
+      default: deny
+      prompt: |
+        Pre-registration of orchestrated-loop run
 
-      You are about to start a {{max_rounds}}-round bundle-overlay loop.
-      Once approved, the closure rule, residual-ledger schema, and
-      adjudication contract are SHA-256-locked.
+        You are about to start a {{max_rounds}}-round bundle-overlay loop.
+        Once approved, the closure rule, residual-ledger schema, and
+        adjudication contract are SHA-256-locked.
 
-      Closure rule:
-        - residual = "closed" iff its frozen original_wording's failure
-          mode is fixed AND not reopened by a later round
-        - reformulation does NOT count as closure
-        - severity-weighted closure (w1=1, w2=2, w3=4) reported alongside
-          count-based closure
-      Convergence: closure rate >= {{closure_target}} AND >= 2x no-op rate
-      No-op arm: {{enable_no_op_arm}}
-      Blinded adjudication: {{enable_blinded_adjudication}}
+        Closure rule:
+          - residual = "closed" iff its frozen original_wording's failure
+            mode is fixed AND not reopened by a later round
+          - reformulation does NOT count as closure
+          - severity-weighted closure (w1=1, w2=2, w3=4) reported alongside
+            count-based closure
+        Convergence: closure rate >= {{closure_target}} AND >= 2x no-op rate
+        No-op arm: {{enable_no_op_arm}}
+        Blinded adjudication: {{enable_blinded_adjudication}}
 
-      Approve to lock and begin / Deny to revise
+        Approve to lock and begin / Deny to revise
 
     steps:
       - id: emit-residual-schema
@@ -69,210 +79,121 @@ stages:
             evidence_artifact, closure_criterion,
             allowed_resolution {closed, open, reformulated, superseded},
             adjudicator_blinded, round_closed, reopened.
-          Output as YAML; write to state.residual_schema.
+          Output as YAML.
+        output: residual_schema
 
       - id: hash-lock
         agent: research:preregistration-reviewer
         prompt: |
           Compute SHA-256 of residual schema + closure rule + no-op arm spec
-          + adjudication contract. Emit hash to state.preregistration_hash.
-          From this point forward, any change to these documents is a
-          recipe-level deviation that must be surfaced via honest-pivot.
+          + adjudication contract. From this point forward, any change to
+          these documents is a recipe-level deviation that must be surfaced
+          via honest-pivot.
+        output: preregistration_hash
 
   - name: baseline-round-0
-    description: "Run benchmark + knowledge-tracking against baseline bundle; emit initial residuals"
     steps:
       - id: run-baseline
         type: recipe
         recipe: empirical-paper.yaml
-        inputs:
+        context:
           bundle_overlay: "{{baseline_bundle_overlay}}"
           benchmark: "{{benchmark_corpus}}"
           knowledge_corpus: "{{knowledge_tracking_corpus}}"
           mode: "measurement-only"
-        outputs:
-          - baseline_metrics
-          - baseline_residuals
+        output: baseline_result
+        parse_json: true
 
-  - name: phase2-loop
-    description: "Iterative bundle-overlay refinement against open residuals"
-    type: while
-    while_condition: "{{ not converged and rounds_remaining > 0 }}"
-    max_iterations: "{{max_rounds}}"
-    initial_state:
-      converged: false
-      rounds_remaining: "{{max_rounds}}"
-      open_residuals: "{{baseline_residuals}}"
-      closed_residuals: []
-      reformulated_residuals: []
-      reopened_residuals: []
-      round_metrics: []
-    body:
-
-      - id: propose-bundle-overlay
-        type: recipe
-        recipe: bundle-overlay-proposer.yaml
-        inputs:
-          open_residuals: "{{open_residuals}}"
-          baseline_bundle_overlay: "{{baseline_bundle_overlay}}"
-          prior_round_metrics: "{{round_metrics}}"
-        outputs:
-          - overlay_path
-
-      - id: run-benchmark-with-overlay
-        type: recipe
-        recipe: empirical-paper.yaml
-        inputs:
-          bundle_overlay: "{{overlay_path}}"
-          benchmark: "{{benchmark_corpus}}"
-          knowledge_corpus: "{{knowledge_tracking_corpus}}"
-          mode: "measurement-only"
-        outputs:
-          - round_metrics_this_round
-
-      - id: run-no-op-arm
-        type: recipe
-        recipe: empirical-paper.yaml
-        condition: "{{ enable_no_op_arm }}"
-        inputs:
-          bundle_overlay: "{{baseline_bundle_overlay}}"
-          benchmark: "{{benchmark_corpus}}"
-          knowledge_corpus: "{{knowledge_tracking_corpus}}"
-          mode: "measurement-only"
-        outputs:
-          - no_op_metrics_this_round
-
-      - id: adjudicate-residual-closure
-        type: recipe
-        recipe: residual-adjudicator.yaml
-        inputs:
-          open_residuals: "{{open_residuals}}"
-          this_round_metrics: "{{round_metrics_this_round}}"
-          no_op_metrics: "{{no_op_metrics_this_round}}"
-          blinded: "{{enable_blinded_adjudication}}"
-          residual_schema: "{{state.residual_schema}}"
-        outputs:
-          - newly_closed
-          - newly_reformulated
-          - newly_reopened
-          - still_open
-
-      - id: judge-satisfaction
-        type: llm_judge
-        provider_preferences:
-          - { provider: openai,    model: "gpt-5*" }
-          - { provider: anthropic, model: "claude-opus-4-7" }
-          - { provider: google,    model: "gemini*" }
-        rubric: "@research:context/orchestrated-loop-judge-rubric.md"
-        satisfaction_threshold: "{{closure_target}}"
-        outputs:
-          - satisfaction
-          - judge_rationale
-
-      - id: update-loop-state
+      - id: extract-baseline-residuals
         agent: research:research-coordinator
         prompt: |
-          Update loop state and check convergence:
-            - Move {{newly_closed}} from open -> closed
-            - Move {{newly_reformulated}} from open -> reformulated
-            - Move {{newly_reopened}} from closed -> reopened (severity flag)
-            - Append round_metrics with {round_n, n_closed, n_reformulated,
-              n_reopened, severity_weighted_closure_rate, no_op_closure_rate,
-              ratio_to_no_op, satisfaction}
-            - Set converged = (satisfaction >= {{closure_target}}) AND
-                              (severity_weighted_closure_rate >= 2 * no_op_closure_rate)
-            - Decrement rounds_remaining
+          From {{baseline_result}}, extract the named residuals (severity-
+          tagged) emitted during the /critique stage. Initialize the loop
+          state with these as the open_residuals.
+
+          Emit a single JSON object with the fields:
+            open_residuals: [list of residual records]
+            baseline_metrics: <copy of {{baseline_result}}>
+        output: baseline_state
+        parse_json: true
+
+  - name: phase2-loop
+    steps:
+      - id: phase2-iteration
+        type: recipe
+        recipe: ./orchestrated-loop-iteration.yaml
+        context:
+          open_residuals: "{{baseline_state.open_residuals}}"
+          baseline_bundle_overlay: "{{baseline_bundle_overlay}}"
+          benchmark_corpus: "{{benchmark_corpus}}"
+          knowledge_tracking_corpus: "{{knowledge_tracking_corpus}}"
+          prior_round_metrics: "{{round_metrics}}"
+          enable_no_op_arm: "{{enable_no_op_arm}}"
+          enable_blinded_adjudication: "{{enable_blinded_adjudication}}"
+          closure_target: "{{closure_target}}"
+        output: iteration_result
+        parse_json: true
+        while_condition: "{{converged}} != 'true'"
+        max_while_iterations: 5
+        break_when: "{{converged}} == 'true'"
+        update_context:
+          converged: "{{iteration_result.iteration_summary.converged}}"
+          open_residuals: "{{iteration_result.iteration_summary.still_open}}"
 
   - name: synthesis
-    description: "Closure-rate analysis (vs no-op baseline) + knowledge-tracking timing"
-    approval_required: true
-    approval_prompt: |
-      Loop synthesis review
+    approval:
+      required: true
+      timeout: 0
+      default: deny
+      prompt: |
+        Loop synthesis review
 
-      Headline numbers (frozen):
-        rounds executed: {{state.rounds_executed}}
-        closure rate (severity-weighted): {{state.severity_weighted_closure}}
-        no-op baseline rate: {{state.no_op_closure}}
-        ratio: {{state.closure_ratio_to_no_op}}
-        knowledge-tracking timing-correlation p: {{state.tracking_p}}
+        Headline numbers (frozen):
+          rounds executed: max {{max_rounds}}
+          converged: {{converged}}
+          residuals still open: {{open_residuals}}
 
-      H3 conjunction:
-        Closure >= 2x no-op:                    {{state.h3_closure_pass}}
-        Knowledge-tracking timing-aligned:      {{state.h3_tracking_pass}}
-        H3 supported (both):                    {{state.h3_supported}}
-
-      Approve to commit synthesis / Deny to investigate residuals
+        Approve to commit synthesis / Deny to investigate residuals
 
     steps:
       - id: closure-vs-noop-analysis
         agent: research:statistician
         prompt: |
-          Compare loop arm's per-round closure rates to no-op arm's per-round
-          rates. Use a paired test (loop vs no-op on same {{baseline_residuals}}).
+          Compare the loop arm's per-round closure rates to the no-op arm's
+          per-round rates, using the round_metrics list. Use a paired test
+          (loop vs no-op on the same baseline residuals).
           Report:
             - point estimate: closure_rate / no_op_rate
             - 95% Wilson CI on the ratio
             - severity-weighted variant
             - whether ratio CI lower bound > 2.0 (H3 first-conjunct pass)
-          Flag oscillation: any residual that flipped open->closed->open across
-          rounds is a ratchet failure even if final state is "closed".
+          Flag oscillation: any residual that flipped open->closed->open
+          across rounds is a ratchet failure even if final state is closed.
+        output: closure_analysis
 
-      - id: knowledge-tracking-timing-analysis
+      - id: knowledge-tracking-timing
         agent: research:statistician
         prompt: |
           Across rounds, compare specialist accuracy on knowledge-tracking
           corpus's date-stamped questions to timing of corpus updates.
-            - Spearman rank correlation between {round_introduced_in_corpus,
-              round_first_correctly_answered}
-            - Pre-registered alpha = 0.05; report p and 95% bootstrap CI
+          Report Spearman rank correlation between round_introduced_in_corpus
+          and round_first_correctly_answered. Pre-registered alpha = 0.05;
+          report p and 95% bootstrap CI.
           Disconfirmation: rho indistinguishable from 0, anti-correlation,
           or constant-correct (= pre-training contamination, NOT tracking).
+        output: tracking_analysis
 
       - id: write-loop-paper-section
         agent: research:technical-writer
         prompt: |
-          Write the H3-evidence section using v3 paper's H3 template.
+          Write the H3-evidence section using the v3 paper's H3 template.
           Required sections:
-            (1) Pre-registration hash + closure rule (verbatim from stage 1)
-            (2) Round-by-round table: residuals_open_at_start, n_closed,
-                n_reopened, severity_weighted_closure, ratio_to_no_op
+            (1) Pre-registration hash + closure rule
+            (2) Round-by-round table
             (3) Closure-vs-no-op analysis (point + Wilson CI)
             (4) Knowledge-tracking timing analysis (rho + bootstrap CI)
-            (5) Honest residuals: residuals reformulated rather than closed,
-                reasons; loop-level residuals; F5/F6 disconfirmation status
-            (6) H3 verdict: supported / partially-supported / not-supported
-
-publish_gates:
-  preregistration_signed:
-    enabled: true
-    blocks_publish: true
-  honest_pivot_acknowledged:
-    enabled: true
-    blocks_publish: true
-  closure_above_noop:
-    description: "H3 first-conjunct: closure rate exceeds no-op baseline"
-    enabled: true
-    blocks_publish: false
-  knowledge_tracking_correlation:
-    description: "H3 second-conjunct: corpus-update timing correlates"
-    enabled: true
-    blocks_publish: false
-
-companion_recipes:
-  - bundle-overlay-proposer.yaml:
-      inputs:  [open_residuals, baseline_bundle_overlay, prior_round_metrics]
-      outputs: [overlay_path]
-      isolation: "fresh sub-session; no inheritance from parent loop state"
-
-  - residual-adjudicator.yaml:
-      inputs:  [open_residuals, this_round_metrics, no_op_metrics, blinded, residual_schema]
-      outputs: [newly_closed, newly_reformulated, newly_reopened, still_open]
-      isolation: "fresh sub-session; if blinded=true, prompt strips proposer
-                  identity and round-of-introduction from each residual"
-
-exit_codes:
-  0: "loop converged; H3 conjunction passed"
-  1: "loop converged; H3 first conjunct passed (closure) but second failed"
-  2: "loop converged; H3 first conjunct failed (closure <= no-op)"
-  3: "loop did not converge within max_rounds"
-  10: "pre-registration hash mismatch detected mid-loop"
+            (5) Honest residuals
+            (6) H3 verdict: supported / partial / not-supported
+          Closure analysis: {{closure_analysis}}
+          Tracking analysis: {{tracking_analysis}}
+        output: h3_section

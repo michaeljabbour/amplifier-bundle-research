@@ -1,7 +1,7 @@
 ---
 bundle:
   name: research
-  version: 0.8.1
+  version: 0.8.2
   description: |
     Superpowers for scientific rigor. From sharpened question to venue-ready
     output, with pre-registration discipline and honest-pivot defaults baked
@@ -43,7 +43,7 @@ agents:
     - research:venue-formatter
     - research:research-coordinator
     # v0.8.0 additions (audit closure):
-    - research:paper-architect           # transferred from amplifier-bundle-scientificpaper
+    - research:research-paper-architect           # transferred from amplifier-bundle-scientificpaper
     - research:ml-paper-reviewer         # gene-transferred from AI-Scientist (NeurIPS rubric + ensemble + calibration warning)
     - research:literature-scout          # gene-transferred from AI-Scientist (agentic Semantic Scholar novelty search)
     - research:idea-generator            # gene-transferred from AI-Scientist (3-axis Interestingness x Feasibility x Novelty + reflection + archive injection)

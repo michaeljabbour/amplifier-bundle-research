@@ -1,0 +1,106 @@
+name: orchestrated-loop-iteration
+version: 0.1.0
+description: |
+  Single iteration of the orchestrated-loop. Spawned by orchestrated-loop.yaml's
+  while step in an isolated sub-session. Receives only the inputs explicitly
+  listed in `context:`; does NOT inherit parent loop state.
+
+  Steps:
+    1. propose-bundle-overlay  — given open residuals, compose a new overlay
+    2. run-benchmark           — run the empirical-paper recipe with overlay
+    3. run-no-op-arm           — same benchmark with NO overlay (drift baseline)
+    4. adjudicate-residuals    — blinded sub-recipe deciding closures
+    5. judge-satisfaction      — cross-vendor judge against the round rubric
+
+  Output: a single JSON dict (parsed by the parent's `update_context:`) that
+  reports all the values the parent loop needs to update its state and decide
+  convergence.
+
+context:
+  open_residuals: []
+  baseline_bundle_overlay: ""
+  benchmark_corpus: ""
+  knowledge_tracking_corpus: ""
+  prior_round_metrics: []
+  enable_no_op_arm: "true"
+  enable_blinded_adjudication: "true"
+  closure_target: 0.50
+
+steps:
+
+  - id: propose-bundle-overlay
+    type: recipe
+    recipe: bundle-overlay-proposer.yaml
+    context:
+      open_residuals: "{{open_residuals}}"
+      baseline_bundle_overlay: "{{baseline_bundle_overlay}}"
+      prior_round_metrics: "{{prior_round_metrics}}"
+    output: overlay_result
+    parse_json: true
+
+  - id: run-benchmark-with-overlay
+    type: recipe
+    recipe: empirical-paper.yaml
+    context:
+      bundle_overlay: "{{overlay_result.overlay_path}}"
+      benchmark: "{{benchmark_corpus}}"
+      knowledge_corpus: "{{knowledge_tracking_corpus}}"
+      mode: "measurement-only"
+    output: round_result
+    parse_json: true
+
+  - id: run-no-op-arm
+    type: recipe
+    recipe: empirical-paper.yaml
+    condition: "{{enable_no_op_arm}} == 'true'"
+    context:
+      bundle_overlay: "{{baseline_bundle_overlay}}"
+      benchmark: "{{benchmark_corpus}}"
+      knowledge_corpus: "{{knowledge_tracking_corpus}}"
+      mode: "measurement-only"
+    output: no_op_result
+    parse_json: true
+
+  - id: adjudicate-residual-closure
+    type: recipe
+    recipe: residual-adjudicator.yaml
+    context:
+      open_residuals: "{{open_residuals}}"
+      this_round_metrics: "{{round_result}}"
+      no_op_metrics: "{{no_op_result}}"
+      blinded: "{{enable_blinded_adjudication}}"
+    output: adjudication_result
+    parse_json: true
+
+  - id: judge-satisfaction
+    agent: research:honest-critic
+    provider_preferences:
+      - { provider: openai,    model: "gpt-5*" }
+      - { provider: anthropic, model: "claude-opus-4-7" }
+      - { provider: google,    model: "gemini*" }
+    prompt: |
+      Apply the rubric at @research:context/orchestrated-loop-judge-rubric.md
+      to this round's results.
+
+      Round metrics (loop arm): {{round_result}}
+      No-op metrics (drift baseline): {{no_op_result}}
+      Adjudication output: {{adjudication_result}}
+      Closure target: {{closure_target}}
+
+      Emit a JSON dict with these exact keys:
+        - satisfaction (float in [0, 1])
+        - newly_closed (list of residual IDs)
+        - newly_reformulated (list)
+        - newly_reopened (list)
+        - still_open (list)
+        - severity_weighted_closure_rate (float)
+        - no_op_closure_rate (float)
+        - ratio_to_no_op (float)
+        - converged (string: "true" or "false")
+        - rationale (string)
+
+      Decide converged="true" iff:
+        satisfaction >= {{closure_target}}
+        AND severity_weighted_closure_rate >= 2 * no_op_closure_rate
+    output: iteration_summary
+    parse_json: true
