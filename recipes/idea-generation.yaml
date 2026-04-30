@@ -1,0 +1,101 @@
+name: idea-generation
+version: 0.1.0
+description: |
+  Phase-1 ideation loop: domain description → N candidate ideas with 3-axis
+  scoring → novelty verification → sharpened hypothesis → handoff to
+  /study-plan. Closes the gap that hypothesis-designer (sharpening) and
+  literature-review (PRISMA) don't fill: the autonomous-ideation primitive.
+
+  Source pattern: AI-Scientist's idea-generation pipeline, but Amplifier-
+  native and gene-transferred at idea-level only (no aider, no GPU runner).
+
+context:
+  domain_description: ""                # required: free-text domain or research area
+  existing_literature_summary: ""       # optional: known prior work paraphrase
+  idea_archive_path: ""                 # optional: path to JSON list of prior ideas
+  n_ideas: 5                            # default count of candidates to generate
+  enable_oe_mode: false                 # OE = score-conditioned next-idea generation
+
+stages:
+
+  - name: idea-generation
+    description: "Generate N ideas with 3-axis Interestingness × Feasibility × Novelty scoring"
+    steps:
+      - id: emit-candidates
+        agent: research:idea-generator
+        prompt: |
+          Domain: {{domain_description}}
+          Literature summary: {{existing_literature_summary}}
+          Idea archive (avoid duplicating): {{idea_archive_path}}
+          Generate {{n_ideas}} candidate research ideas with the 3-axis
+          scoring, run up to 3 reflection rounds, and return the structured
+          output. OE mode: {{enable_oe_mode}}.
+        outputs:
+          - candidate_ideas
+
+  - name: novelty-verification
+    description: "Verify each candidate against Semantic Scholar (literature-scout)"
+    steps:
+      - id: verify-each-novelty
+        agent: research:literature-scout
+        prompt: |
+          For each idea in {{candidate_ideas}}, run the agentic novelty-check
+          loop. Mark each as: novel (no directly-prior work), not-novel (one or
+          more directly-prior papers), or inconclusive. Return the verdict per
+          idea plus the relevant adjacent prior work (for any future paper
+          related-work section).
+        outputs:
+          - novelty_verdicts
+          - adjacent_prior_work
+
+  - name: filter-and-rank
+    description: "Filter non-novel ideas; rank novel ideas by composite score"
+    steps:
+      - id: rank-survivors
+        agent: research:research-coordinator
+        prompt: |
+          Filter {{candidate_ideas}} by {{novelty_verdicts}} keeping only
+          'novel' or 'inconclusive' ideas. Rank by:
+            score = 0.4 * novelty + 0.4 * interestingness + 0.2 * feasibility
+          Return ranked list with the top 1-3 marked as recommended.
+
+  - name: sharpening
+    description: "Sharpen the top-ranked idea into a falsifiable hypothesis"
+    approval_required: true
+    approval_prompt: |
+      Top {{n_ideas}} candidate ideas after novelty filtering:
+      {{ranked_ideas}}
+
+      Recommended for sharpening: idea {{ranked_ideas[0].id}}
+
+      Approve to sharpen via hypothesis-designer / Deny to revisit ideation
+    steps:
+      - id: sharpen-into-hypothesis
+        agent: research:hypothesis-designer
+        prompt: |
+          Take idea {{ranked_ideas[0]}} and sharpen into a falsifiable
+          research question with explicit predictions, named mechanisms,
+          and disconfirmation criteria. The output should be ready to hand
+          off to methodologist + /study-plan.
+
+  - name: handoff
+    description: "Produce the structured handoff packet"
+    steps:
+      - id: emit-handoff
+        agent: research:research-coordinator
+        prompt: |
+          Emit the handoff packet:
+            - sharpened_question (from hypothesis-designer)
+            - relevant_prior_work (from literature-scout)
+            - suggested_methodology_starting_points
+            - candidate_target_venue (based on idea's scoring profile)
+          Format as a single YAML block ready to paste into a /study-plan
+          mode session.
+
+publish_gates:
+  novelty_verified:
+    enabled: true
+    blocks_publish: true
+  hypothesis_sharpened:
+    enabled: true
+    blocks_publish: true

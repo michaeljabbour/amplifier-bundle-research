@@ -1,11 +1,12 @@
 ---
 bundle:
   name: research-behaviors
-  version: 0.4.0
+  version: 0.5.0
   description: |
-    Composite behavior bundle. Packages all seven research-bundle behaviors
+    Composite behavior bundle. Packages all ten research-bundle behaviors
     (honest-pivot, exploratory-labeling, paperbanana, figure-generation,
-    latex-authoring, conference-styling, research-modes) so that consumers can pull them
+    latex-authoring, conference-styling, research-modes, stop-slop,
+    cache-only-verification, cross-vendor-judge) so that consumers can pull them
     in as a single unit, and so that research/bundle.md stays DRY by
     referencing this one file instead of each behavior individually.
 
@@ -18,13 +19,16 @@ includes:
   - bundle: research:behaviors/latex-authoring.md
   - bundle: research:behaviors/conference-styling.md
   - bundle: research:behaviors/research-modes.md       # Registers /question, /study-plan, /execute, /critique, /draft, /publish as real slash commands
+  # v0.8.0 additions (audit closure):
+  - bundle: research:behaviors/cache-only-verification.md  # `--from-cache` committee-audit pattern
+  - bundle: research:behaviors/cross-vendor-judge.md       # codifies provider_preferences class enforcement
 ---
 
 # Research Behaviors (Composite)
 
 This is the canonical entry point for consuming research-bundle behaviors
 from any other bundle. Including `research:behaviors/research.md` transitively
-pulls in all eight behaviors with their default configurations.
+pulls in all ten behaviors with their default configurations.
 
 ## What's included
 
@@ -38,6 +42,8 @@ pulls in all eight behaviors with their default configurations.
 | `latex-authoring` | on | LaTeX compilation, conference formatting, structural planning |
 | `conference-styling` | on | Per-venue formatting (NeurIPS, ICML, ACL, IEEE, ACM, arXiv) |
 | `research-modes` | on | Registers /question, /study-plan, /execute, /critique, /draft, /publish as real slash commands |
+| `cache-only-verification` | opt-in | Committee-audit re-verification path (--from-cache mode for validation scripts; no API keys) |
+| `cross-vendor-judge`      | opt-in | Codifies cross-vendor LLM-judge enforcement to mitigate v3 paper's reflexivity-hazard #1 |
 
 ## Selective inclusion
 

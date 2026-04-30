@@ -1,0 +1,94 @@
+name: cache-only-verify
+version: 0.1.0
+description: |
+  Thin wrapper that runs every validation script in cache-only mode. Used
+  for committee-audit verification of a research bundle without any API
+  credentials. All steps must exit 0 for the bundle to be considered
+  re-verified.
+
+  This is the recipe equivalent of the PSE-PG14 v4f acceptance-bar:
+    PYTHONPATH=. python3 compute_manifest_hash.py --check
+    PYTHONPATH=. python3 -m pytest tests/ -q
+    PYTHONPATH=. python3 compute_stats.py
+    PYTHONPATH=. python3 run_judge_validation.py    --from-cache
+    PYTHONPATH=. python3 run_extended_validation.py --from-cache
+    PYTHONPATH=. python3 run_tertiary_audit.py      --from-cache
+    PYTHONPATH=. python3 run_memory_extended.py     --from-cache
+
+context:
+  bundle_root: ""                       # required: path to the extracted bundle
+  validation_scripts: []                # auto-discovered if empty
+  expected_artifacts:                   # paths the bundle must contain
+    - "data/"
+    - "validation/"
+    - "tests/"
+    - "compute_manifest_hash.py"
+
+stages:
+
+  - name: structure-check
+    description: "Verify bundle structure before running scripts"
+    steps:
+      - id: verify-structure
+        type: shell
+        command: |
+          for path in {{expected_artifacts | join(' ')}}; do
+            test -e "{{bundle_root}}/$path" || { echo "MISSING: $path"; exit 1; }
+          done
+          echo "structure-check: OK"
+
+  - name: manifest-hash
+    description: "Verify COMMIT.txt matches recomputed manifest"
+    steps:
+      - id: check-manifest
+        type: shell
+        command: |
+          cd {{bundle_root}} && PYTHONPATH=. python3 compute_manifest_hash.py --check
+
+  - name: pytest
+    description: "Run the bundle's release-readiness test suite"
+    steps:
+      - id: run-pytest
+        type: shell
+        command: |
+          cd {{bundle_root}} && PYTHONPATH=. python3 -m pytest tests/ -q
+
+  - name: stats
+    description: "Regenerate derived stats artifacts"
+    steps:
+      - id: run-stats
+        type: shell
+        command: |
+          cd {{bundle_root}} && PYTHONPATH=. python3 compute_stats.py
+
+  - name: validation-scripts-cache-only
+    description: "Run all validation scripts in cache-only mode"
+    steps:
+      - id: discover-and-run
+        type: shell
+        command: |
+          cd {{bundle_root}}
+          for script in run_*.py; do
+            test -f "$script" || continue
+            echo "--- $script --from-cache ---"
+            PYTHONPATH=. python3 "$script" --from-cache || exit 1
+          done
+          echo "all validation scripts: OK"
+
+  - name: forbidden-strings-rendered-pdf
+    description: "Optional: ensure rendered PDF doesn't contain forbidden strings (drift-detection)"
+    optional: true
+    steps:
+      - id: pdftotext-grep
+        type: shell
+        command: |
+          cd {{bundle_root}}
+          if [ -f paper.pdf ]; then
+            HITS=$(pdftotext paper.pdf - | grep -E "${FORBIDDEN_PATTERN:-NEVER_MATCH_THIS}" || true)
+            if [ -n "$HITS" ]; then
+              echo "FORBIDDEN STRINGS DETECTED:"
+              echo "$HITS"
+              exit 1
+            fi
+            echo "no forbidden strings"
+          fi

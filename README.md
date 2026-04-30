@@ -6,6 +6,24 @@ Patent briefs. Policy positions. White papers. Literature reviews. Workshop pape
 
 ---
 
+
+## v0.8.0 (2026-04-30) — Audit-closure release
+
+Closes the gap list from the v0.7-era external audit. Adds the orchestrated-loop recipe (the H3 enabler from the program paper), four new agents gene-transferred from `amplifier-bundle-scientificpaper` and `AI-Scientist`, two new behaviors, one new awareness context, and a healthcheck script. See `docs/V0.8.0-PLAN.md` for the durable record and `scripts/v0.8.0-healthcheck.sh` for one-command verification.
+
+Headline additions:
+- `recipes/orchestrated-loop.yaml` — Phase 1 → Phase 2 → reconfigure → re-run, with residual-ledger schema, blinded adjudication, and no-op drift baseline (canonical reference: `attractor.yaml` Stage 3).
+- `agents/paper-architect.md` — structural-planning agent (IMRAD, abstract framework, section budgets, paper-type templates). Transferred from `amplifier-bundle-scientificpaper`.
+- `agents/ml-paper-reviewer.md` — venue-calibrated peer-review feedback (NeurIPS/ICML/ICLR/ACL/CVPR rubric + 5-ensemble + meta-reviewer + mandatory calibration warning).
+- `agents/literature-scout.md` — agentic Semantic Scholar novelty-search loop.
+- `agents/idea-generator.md` + `recipes/idea-generation.yaml` — autonomous research ideation with 3-axis Interestingness × Feasibility × Novelty scoring + reflection convergence + archive injection.
+- `behaviors/cache-only-verification.md` + `recipes/cache-only-verify.yaml` — committee-audit re-verification path (`--from-cache` mode) without API keys.
+- `behaviors/cross-vendor-judge.md` — codifies cross-vendor LLM-judge enforcement to mitigate the v3 program paper's reflexivity-hazard #1.
+- `context/experiment-calibration-awareness.md` — ECE / Brier / reliability-diagram as first-class metrics.
+- `scripts/v0.8.0-healthcheck.sh` — 43-check structural + capability + wire-up healthcheck. All passing.
+
+All gene-transfers are idea-level. AI-Scientist's GPU experiment runner, aider dependency, and NPEET are intentionally NOT imported.
+
 ## Install (once)
 
 ```bash
