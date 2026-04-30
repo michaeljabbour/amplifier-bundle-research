@@ -1,16 +1,363 @@
 name: patent-brief
-version: 0.1.0
+version: 0.2.0
 description: |
   USPTO-style invention disclosure with prior-art section and claim chart.
   Designed for patent attorneys, technical founders, and inventors producing
   a defensible brief for a filing attorney's review.
 
-# ---------------------------------------------------------------------------
-# Mode sequence — full six-mode pipeline
-# ---------------------------------------------------------------------------
+  v0.2.0: Added executable `stages:` block. The pre-existing `modes:`, `defaults:`,
+  `behaviors:`, `persona_signals:`, and `publish_gates:` blocks are preserved AS
+  DOCUMENTATION below — they encode the design contracts a session enforces. The
+  engine ignores them; the executable workflow lives in `stages:`.
 
+  NOTE: This is a non-academic persona. Cross-vendor judge enforcement is NOT
+  applied (no rubric-graded benchmarking). Cache-only mode remains available.
+
+# ---------------------------------------------------------------------------
+# Input context (engine-bound)
+# ---------------------------------------------------------------------------
 context:
-  cache_only: false                # v0.8.1: opt-in cache-only mode for committee verification
+  cache_only: false       # v0.8.1: opt-in cache-only mode for committee verification
+  invention: ""           # Required: short invention description
+  field: ""               # Optional: technical field
+  prototype: ""           # Optional: link to or description of prototype
+  prior_art_known: ""     # Optional: prior-art the inventor already knows about
+
+# ===========================================================================
+# EXECUTABLE STAGES (engine runs these)
+# ===========================================================================
+stages:
+  # -------------------------------------------------------------------------
+  # Stage 1: QUESTION — sharpen invention into defensible claims
+  # -------------------------------------------------------------------------
+  - name: question
+    description: "Sharpen the invention into testable claims (novelty / utility / non-obviousness)"
+    steps:
+      - id: sharpen-question
+        agent: research:hypothesis-designer
+        prompt: |
+          Sharpen the invention disclosure into a structure suitable for a
+          USPTO patent brief. Use plain language; do not require the user to
+          know terms like "PHOSITA" or "non-obviousness".
+
+          **Invention:** {{invention}}
+          **Field:** {{field}}
+          **Prototype (if any):** {{prototype}}
+          **Prior art the inventor knows about:** {{prior_art_known}}
+
+          Produce:
+          1. The single sentence that answers "What is the invention?"
+          2. The problem it solves and who has it.
+          3. The core mechanism that makes it work.
+          4. What a competent practitioner currently does (current state of art).
+          5. The gap this invention fills.
+          6. A first-pass list of independent and dependent claims (drafted
+             plainly — the attorney will tighten language later).
+        output: sharpened_question
+        timeout: 600
+
+  # -------------------------------------------------------------------------
+  # Stage 2: PLAN — lock claim structure + prior-art strategy + enablement
+  #          (LOAD-BEARING APPROVAL GATE)
+  # -------------------------------------------------------------------------
+  - name: plan
+    description: "Lock claim structure, prior-art search strategy, and enablement plan"
+    approval:
+      required: true
+      timeout: 0
+      default: deny
+      prompt: |
+        🔒 **Patent Brief Plan Lock — Approval Required**
+
+        Lock the claim structure, prior-art search strategy, and enablement plan
+        BEFORE running the prior-art search. Locking the claim shape first
+        prevents post-hoc claim narrowing to dodge inconvenient prior art.
+
+        **Sharpened invention:**
+        {{sharpened_question}}
+
+        **Methodology plan (claim structure + prior-art strategy + enablement plan):**
+        {{methodology_plan}}
+
+        **Statistical / search-coverage plan:**
+        {{statistical_plan}}
+
+        **Preregistration review (hash):**
+        {{preregistration_hash}}
+
+        Required checks:
+        - [ ] Independent claims drafted before prior-art search
+        - [ ] Prior-art search sources locked (USPTO, Google Patents, arXiv, IEEE)
+        - [ ] Search depth / snowball strategy locked
+        - [ ] Enablement-demo plan locked (if prototype exists)
+        - [ ] SHA256 hash captured
+
+        ✅ Approve to lock and run prior-art search.
+        ❌ Deny to revise.
+
+    steps:
+      - id: methodology-design
+        agent: research:methodologist
+        prompt: |
+          Design the patent-brief methodology.
+
+          **Invention:** {{sharpened_question}}
+
+          Lock:
+          - Independent claim structure (1–3 independent claims drafted plainly).
+          - Dependent claim ladder.
+          - Prior-art search strategy: sources (USPTO, Google Patents, arXiv,
+            IEEE Xplore), keywords, classification codes, snowball depth.
+          - Enablement-demo plan: how the prototype (if any) demonstrates that
+            a person of ordinary skill could build it from the description.
+          - Drawing plan (numbered parts list).
+        output: methodology_plan
+        timeout: 900
+
+      - id: statistical-plan
+        agent: research:statistician
+        prompt: |
+          Define the prior-art search-coverage plan.
+
+          **Methodology:** {{methodology_plan}}
+
+          Lock:
+          - Coverage target: ≥3 prior-art references per independent claim.
+          - Search syntax per source.
+          - Forward / backward citation chasing depth.
+          - How "closeness" of a prior-art reference is judged.
+          - What triggers a claim-narrowing decision (vs. abandoning a claim).
+          - Documentation requirements for the claim chart.
+        output: statistical_plan
+        timeout: 600
+        depends_on: [methodology-design]
+
+      - id: preregistration-review
+        agent: research:preregistration-reviewer
+        prompt: |
+          Review the assembled patent-brief plan.
+
+          **Methodology / claim plan:** {{methodology_plan}}
+          **Search-coverage plan:** {{statistical_plan}}
+
+          Tasks:
+          1. Verify independent claims are drafted BEFORE the search runs.
+          2. Verify search strategy is concrete and reproducible.
+          3. Identify ambiguity that would let claims be silently narrowed.
+          4. Compute/simulate SHA256 hash of canonicalized plan.
+          5. Recommend any edits before locking.
+
+          Return the hash and a yes/no on lock-readiness.
+        output: preregistration_hash
+        timeout: 600
+        depends_on: [statistical-plan]
+
+  # -------------------------------------------------------------------------
+  # Stage 3: EXECUTE — prior-art search + claim chart + enablement demo
+  # -------------------------------------------------------------------------
+  - name: execute
+    description: "Run prior-art search; build claim chart; run enablement demo"
+    steps:
+      - id: prior-art-search
+        agent: research:statistician
+        prompt: |
+          Execute the locked prior-art search and build the claim chart.
+
+          **Locked plan (hash {{preregistration_hash}}):**
+          - Methodology / claim plan: {{methodology_plan}}
+          - Search-coverage plan: {{statistical_plan}}
+
+          Tasks:
+          1. Run the prior-art search across locked sources (USPTO, Google
+             Patents, arXiv, IEEE Xplore) using the locked syntax.
+          2. Score each hit for closeness to the independent claims.
+          3. Build the claim chart: claim element ↔ prior-art reference.
+          4. Identify the closest prior art and articulate the differentiation.
+          5. If a prototype exists, document the enablement demo.
+          6. Any deviation from the locked plan is logged as honest-pivot.
+
+          Return: prior-art table, claim chart, enablement-demo notes,
+          differentiation analysis, deviation log.
+        output: results
+        timeout: 1500
+
+  # -------------------------------------------------------------------------
+  # Stage 4: CRITIQUE — novelty + enablement stress test
+  # -------------------------------------------------------------------------
+  - name: critique
+    description: "Honest-critic novelty + enablement + overclaim review"
+    steps:
+      - id: honest-critique
+        agent: research:honest-critic
+        prompt: |
+          Honest-critic review of the patent brief material.
+
+          **Sharpened invention:** {{sharpened_question}}
+          **Locked plan:** {{methodology_plan}}
+          **Prior-art search + claim chart:** {{results}}
+
+          Score (1–5) AND describe weaknesses concretely:
+          1. Novelty — do the independent claims survive the prior art found?
+          2. Enablement — could a competent practitioner actually build this
+             from the description? Are there hand-wavy "and then magic" steps?
+          3. Overclaim detection — flag soft language like "substantially",
+             "dramatically", "best-in-class". Each one is a future invalidity vector.
+          4. Claim scope — too broad (invalidity risk) vs. too narrow (thin moat)?
+          5. Drawing plan — are numbered parts referenced consistently?
+
+          Be uncharitable. If a claim is broader than the prototype supports,
+          say so. If the closest prior art looks fatal, say so loudly.
+        output: critique
+        timeout: 1200
+
+  # -------------------------------------------------------------------------
+  # Stage 5: DRAFT — USPTO-style structured brief
+  # -------------------------------------------------------------------------
+  - name: draft
+    description: "Architect → write → drawings → cite → final assembly"
+    steps:
+      - id: paper-architecture
+        agent: research:methodologist
+        prompt: |
+          Plan the USPTO-style brief structure before writing.
+
+          **Sharpened invention:** {{sharpened_question}}
+          **Methodology / claim plan:** {{methodology_plan}}
+          **Prior-art results:** {{results}}
+          **Critique:** {{critique}}
+
+          Produce:
+          1. Section outline (Field of Invention, Background, Summary,
+             Detailed Description, Claims, Abstract, Drawings).
+          2. Per-section key content map.
+          3. Drawing-numbering plan (parts list reused across figures).
+          4. Where overclaim risks identified by /critique are softened.
+          5. Where claim narrowing is justified vs. closest prior art.
+        output: paper_architecture
+        timeout: 600
+
+      - id: write-paper
+        agent: research:research-technical-writer
+        prompt: |
+          Write the patent-brief body following the architecture.
+
+          **Architecture:** {{paper_architecture}}
+          **Prior-art results:** {{results}}
+          **Critique:** {{critique}}
+
+          Constraints:
+          - USPTO style.
+          - No soft superlatives ("substantially", "dramatically", ...) on
+            independent claims.
+          - Each independent claim followed by dependent claims that narrow.
+          - Detailed Description must enable a competent practitioner.
+          - Numbered parts referenced consistently with drawings.
+        output: paper_body
+        timeout: 1500
+        depends_on: [paper-architecture]
+
+      - id: design-figures
+        agent: research:figure-designer
+        prompt: |
+          Design the patent drawings.
+
+          **Architecture:** {{paper_architecture}}
+
+          For each drawing:
+          - Black-and-white only (USPTO convention).
+          - Numbered parts; numbers match the Detailed Description.
+          - Standalone caption.
+          - Clear hierarchy and minimum-clutter layout.
+        output: figures
+        timeout: 1200
+        depends_on: [paper-architecture]
+
+      - id: manage-citations
+        agent: research:research-citation-manager
+        prompt: |
+          Build the references / prior-art citation list.
+
+          **Paper body:** {{paper_body}}
+          **Citation style:** USPTO (per defaults).
+
+          Verify every prior-art reference cited in the claim chart appears in
+          the references with full bibliographic info. Flag any unverifiable
+          patent or paper citations.
+        output: citations
+        timeout: 600
+        depends_on: [write-paper]
+
+      - id: assemble-draft
+        agent: research:research-technical-writer
+        prompt: |
+          Assemble the final patent-brief draft package.
+
+          - Paper body: {{paper_body}}
+          - Drawings: {{figures}}
+          - Prior-art citations: {{citations}}
+
+          Output a single coherent draft ready for filing-attorney review.
+        output: draft_complete
+        timeout: 900
+        depends_on: [design-figures, manage-citations]
+
+  # -------------------------------------------------------------------------
+  # Stage 6: PUBLISH — filing-ready output (FINAL APPROVAL GATE)
+  # -------------------------------------------------------------------------
+  - name: publish
+    description: "USPTO-filing-ready packaging with final human approval"
+    approval:
+      required: true
+      timeout: 0
+      default: deny
+      prompt: |
+        📤 **Publish Approval — Final Output Gate**
+
+        Final review before producing the filing-ready brief. The drafting
+        attorney will tighten language post-hoc; this gate ensures we hand
+        them a brief without obvious novelty or enablement holes.
+
+        **Draft:** {{draft_complete}}
+
+        Required checks:
+        - [ ] No overclaim flags on independent claims
+        - [ ] Enablement score adequate (or limitations flagged)
+        - [ ] ≥3 prior-art references per independent claim
+        - [ ] Drawings consistent with Detailed Description
+        - [ ] Preregistration hash recorded: {{preregistration_hash}}
+
+        ✅ Approve to format for filing.
+        ❌ Deny to revise.
+
+    steps:
+      - id: format-for-venue
+        agent: research:venue-formatter
+        prompt: |
+          Format the patent-brief draft as a filing-ready package.
+
+          **Draft:** {{draft_complete}}
+          **Target venue:** USPTO.
+          **Preregistration hash (record in supplement):** {{preregistration_hash}}
+
+          Produce:
+          - patent-brief.docx + patent-brief.pdf.
+          - claim-chart.xlsx.
+          - prior-art-table.xlsx.
+          - drawings/ (numbered figures).
+          - preregistration.yaml (the hash-locked /plan artifact).
+        output: venue_ready_doc
+        timeout: 900
+
+# Recursion protection
+recursion:
+  max_depth: 2
+  max_total_steps: 50
+
+# ===========================================================================
+# DESIGN-CONTRACT DOCUMENTATION (preserved from v0.1.0; engine ignores these
+# top-level blocks but they encode the per-mode contracts that a /command
+# session enforces. Keep them as the design source-of-truth.)
+# ===========================================================================
 
 modes:
   - id: question
@@ -36,10 +383,10 @@ modes:
   - id: critique
     purpose: Novelty + enablement stress tests
     emphasis:
-      - novelty  # stress-test claims against found prior art
-      - enablement  # could a PHOSITA build it from the description?
-      - overclaim-detection  # flag "substantially", "dramatically" etc.
-      - claim-scope  # too broad = invalidity risk; too narrow = thin protection
+      - novelty
+      - enablement
+      - overclaim-detection
+      - claim-scope
   - id: draft
     purpose: USPTO-style structured brief
     template: templates/patent-brief-skeleton.md
@@ -61,50 +408,33 @@ modes:
       - claim-chart.xlsx
       - prior-art-table.xlsx
       - drawings/
-      - preregistration.yaml  # the hash-locked /plan artifact
+      - preregistration.yaml
 
-# ---------------------------------------------------------------------------
-# Defaults — overridable by user
-# ---------------------------------------------------------------------------
 defaults:
   honest_pivot: true
   exploratory_labeling: true
   preregistration_required: true
   citation_style: uspto
-  figure_style: patent-drawing  # black-and-white, numbered parts
+  figure_style: patent-drawing
 
-# ---------------------------------------------------------------------------
-# Publish gates — enforced at /publish entry. Session refuses to run /publish
-# until these conditions are satisfied.
-# ---------------------------------------------------------------------------
 publish_gates:
-  # -- v0.3 workflow gates ---------------------------------------------------
   critique_required:
     enabled: true
     description: |
       /publish refuses to execute until at least one /critique pass has produced
-      a critique_report artifact for the current draft. This prevents publishing
-      work that has not been subjected to structured self-review.
+      a critique_report artifact for the current draft.
     enforcement: block
     bypass: "--no-critique-gate"
     bypass_warning: |
-      Publishing without a critique pass. The output's metadata will record
-      that critique was bypassed. This is appropriate for informal drafts and
-      internal-use documents, but not recommended for external publication.
-    artifact_required: critique.yaml  # produced by /critique mode; lives in .amplifier/sessions/<session>/
-
+      Publishing without a critique pass.
+    artifact_required: critique.yaml
   honest_pivot_acknowledged:
-    enabled: true  # applies if the pre-registered prior-art or evidence search
-                   # produces results that differ from expectations
+    enabled: true
     description: |
-      If /execute produced findings that diverge from the pre-registration,
-      /publish requires the user has acknowledged each divergence via the
-      honest-pivot behavior (either labeled exploratory, amended with
-      timestamp, or disabled with --no-honest-pivot flag).
+      Applies if the pre-registered prior-art or evidence search produces
+      results that differ from expectations.
     enforcement: block
-    bypass: null  # Cannot be bypassed — architectural guarantee
-
-  # -- Domain-specific quality gates ----------------------------------------
+    bypass: null
   quality_gates:
     - name: novelty
       condition: no overclaim flags on independent claims
@@ -116,11 +446,7 @@ publish_gates:
       condition: ">= 3 prior-art references per independent claim"
       on_fail: warn
 
-# ---------------------------------------------------------------------------
-# Persona detection hints
-# ---------------------------------------------------------------------------
 persona_signals:
-  # How the bundle guesses whether the user is A, B, or C
   persona_a_indicators:
     - user asked to "draft a patent" (outcome-focused)
     - user described invention in prose without technical schemas

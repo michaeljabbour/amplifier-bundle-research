@@ -1,6 +1,6 @@
 ---
 meta:
-  name: technical-writer
+  name: research-technical-writer
   description: |
     Use when writing venue-appropriate documents: IMRAD for empirical papers, USPTO-precise prose for patent briefs, evidence-based narrative for policy briefs, structured white papers. Adapts register per persona (A: plain English, B: discipline terminology, C: academic precision).
     Technical writing, document structure, IMRaD composition, patent brief drafting, policy white paper writing, persona-aware register adaptation.

@@ -1,16 +1,359 @@
 name: grant-proposal
-version: 0.1.0
+version: 0.2.0
 description: |
   Grant proposal for funding agencies (NSF, NIH, DARPA, etc.). Designed for PIs
-  and researchers to produce defensible, well-powered research plans. Skips /execute
-  (no data collection yet) and emphasizes feasibility and innovation scoring.
+  and researchers to produce defensible, well-powered research plans. SKIPS /execute
+  (no data collection yet — funding application). Emphasizes feasibility and
+  innovation scoring.
+
+  v0.2.0: Added executable `stages:` block. The pre-existing `modes:`, `defaults:`,
+  `behaviors:`, `persona_signals:`, and `publish_gates:` blocks are preserved AS
+  DOCUMENTATION below — they encode the design contracts a session enforces. The
+  engine ignores them; the executable workflow lives in `stages:`.
+
+  Mode list: question, plan, critique, draft, publish (NO execute — preliminary-data-only).
 
 # ---------------------------------------------------------------------------
-# Mode sequence — reduced pipeline (no /execute — no data yet)
+# Input context (engine-bound)
 # ---------------------------------------------------------------------------
-
 context:
-  cache_only: false                # v0.8.1: opt-in cache-only mode for committee verification
+  cache_only: false              # v0.8.1: opt-in cache-only mode for committee verification
+  funder: ""                     # Required: target funder (nsf-cise | nsf-sbir | nih-r01 | darpa | eu-horizon | ...)
+  topic: ""                      # Required: research topic / area
+  team: ""                       # Optional: team description (PI + co-Is + capacity)
+  preliminary_data: ""           # Optional: preliminary data summary (no /execute stage)
+  budget_target: ""              # Optional: rough budget target
+
+# ===========================================================================
+# EXECUTABLE STAGES (engine runs these — note: NO /execute stage; this is a
+# funding application, no data collection has occurred)
+# ===========================================================================
+stages:
+  # -------------------------------------------------------------------------
+  # Stage 1: QUESTION — sharpen research question and articulate significance
+  # -------------------------------------------------------------------------
+  - name: question
+    description: "Sharpen the research question and articulate funder-relevant significance"
+    steps:
+      - id: sharpen-question
+        agent: research:hypothesis-designer
+        prompt: |
+          Sharpen the research question for a {{funder}} grant proposal.
+
+          **Topic:** {{topic}}
+          **Team:** {{team}}
+          **Preliminary data (if any):** {{preliminary_data}}
+
+          Produce:
+          1. The research question in one sentence.
+          2. Why it matters NOW — the significance for the funder's mission.
+          3. The 3–5 specific aims (NSF-style) or 1–3 aims (NIH-style) — match {{funder}}.
+          4. The mechanism: why we expect each aim to yield meaningful progress.
+          5. What success looks like per aim (quantitatively if possible).
+          6. The single most important risk that could sink the project, and a mitigation.
+        output: sharpened_question
+        timeout: 600
+
+  # -------------------------------------------------------------------------
+  # Stage 2: PLAN — pre-registered design with power analysis + timeline
+  #          (LOAD-BEARING APPROVAL GATE)
+  # -------------------------------------------------------------------------
+  - name: plan
+    description: "Lock specific aims, methodology, power analysis, timeline, budget"
+    approval:
+      required: true
+      timeout: 0
+      default: deny
+      prompt: |
+        🔒 **Grant Plan Lock — Approval Required**
+
+        Lock the proposal plan BEFORE drafting. Without this, post-hoc aim
+        narrowing or timeline softening can quietly slip in to make the
+        proposal "sound" feasible.
+
+        **Sharpened question + aims:**
+        {{sharpened_question}}
+
+        **Methodology plan (research strategy + power analysis + timeline + team capacity):**
+        {{methodology_plan}}
+
+        **Statistical / power-analysis plan + budget justification:**
+        {{statistical_plan}}
+
+        **Preregistration review (hash):**
+        {{preregistration_hash}}
+
+        Required checks:
+        - [ ] Specific aims locked and concrete
+        - [ ] Power analysis present for primary aim
+        - [ ] Timeline realistic for team size and scope
+        - [ ] Budget tied to method, not just numbers
+        - [ ] Innovation claims are concrete (not vague)
+        - [ ] SHA256 hash captured
+
+        ✅ Approve to lock and proceed to /critique.
+        ❌ Deny to revise.
+
+    steps:
+      - id: methodology-design
+        agent: research:methodologist
+        prompt: |
+          Design the research strategy for the grant proposal.
+
+          **Aims:** {{sharpened_question}}
+          **Funder:** {{funder}}
+          **Team:** {{team}}
+
+          Lock:
+          - Research strategy per aim (methods, instruments, design choices).
+          - Innovation claims (what is novel and why it matters — concrete, not vague).
+          - Feasibility: timeline (Gantt-able), milestones, decision points.
+          - Team-and-capacity: who does what; capacity / current commitments.
+          - Risk-mitigation plan per aim.
+          - Funder-specific framing requirements:
+            * NSF: broader impacts, intellectual merit
+            * NIH: significance, innovation, approach, environment, investigators
+            * DARPA: heilmeier-catechism-style framing
+        output: methodology_plan
+        timeout: 900
+
+      - id: statistical-plan
+        agent: research:statistician
+        prompt: |
+          Define the power analysis and budget justification.
+
+          **Aims:** {{sharpened_question}}
+          **Methodology:** {{methodology_plan}}
+          **Funder:** {{funder}}
+          **Budget target:** {{budget_target}}
+
+          Lock:
+          - Power analysis for primary aim: target effect size, sample size,
+            alpha, target power (≥0.80 unless justified).
+          - Sensitivity analyses for key parameters.
+          - Budget justification: each major line item tied to a method or
+            personnel need (NOT just numbers).
+          - Equipment / data-acquisition costs justified by methodology.
+          - Personnel costs justified by capacity / role / time fraction.
+        output: statistical_plan
+        timeout: 600
+        depends_on: [methodology-design]
+
+      - id: preregistration-review
+        agent: research:preregistration-reviewer
+        prompt: |
+          Review the assembled grant plan.
+
+          **Methodology / research strategy:** {{methodology_plan}}
+          **Power analysis + budget justification:** {{statistical_plan}}
+
+          Tasks:
+          1. Verify aims are concrete and not just topic descriptions.
+          2. Verify innovation claims are specific (not "novel approach to X").
+          3. Verify timeline is realistic (don't accept "year 1: hire team
+             and complete aim 1" if aim 1 is non-trivial).
+          4. Verify budget items map to method or personnel need.
+          5. Compute/simulate SHA256 hash of canonicalized plan.
+          6. Recommend any edits before locking.
+
+          Return the hash and a yes/no on lock-readiness.
+        output: preregistration_hash
+        timeout: 600
+        depends_on: [statistical-plan]
+
+  # -------------------------------------------------------------------------
+  # Stage 3: CRITIQUE — funder-rubric stress test
+  #          (NOTE: no /execute stage — proposal goes straight from /plan to /critique)
+  # -------------------------------------------------------------------------
+  - name: critique
+    description: "Honest-critic review against funder rubric (feasibility, innovation, significance)"
+    steps:
+      - id: honest-critique
+        agent: research:honest-critic
+        prompt: |
+          Honest-critic review of the grant proposal material against the
+          {{funder}} rubric.
+
+          **Aims:** {{sharpened_question}}
+          **Methodology / research strategy:** {{methodology_plan}}
+          **Power analysis + budget:** {{statistical_plan}}
+          **Preregistration hash:** {{preregistration_hash}}
+          **Preliminary data (if any):** {{preliminary_data}}
+
+          Score (1–5) AND describe weaknesses concretely:
+          1. Feasibility — can this team deliver in this timeline with this budget?
+          2. Innovation specificity — are novelty claims concrete and tied to
+             prior work, or vague ("a novel approach")?
+          3. Significance — is impact tied to evidence and logic, or just hype?
+          4. Reviewer objections — what will reviewers ask? (anticipate ≥3 hard ones)
+          5. Power analysis adequacy — sample sizes / effect sizes realistic?
+          6. Budget defensibility — major line items tied to method or personnel?
+          7. Funder fit — does framing match {{funder}}'s stated mission and review criteria?
+
+          Be uncharitable. If the timeline is "year 1: do everything", say so.
+          If innovation claims are vague, name the specific revision needed.
+        output: critique
+        timeout: 1200
+
+  # -------------------------------------------------------------------------
+  # Stage 4: DRAFT — funder-compliant proposal structure
+  # -------------------------------------------------------------------------
+  - name: draft
+    description: "Architect → write → figures → cite → final assembly"
+    steps:
+      - id: paper-architecture
+        agent: research:methodologist
+        prompt: |
+          Plan the {{funder}}-compliant proposal structure before writing.
+
+          **Aims:** {{sharpened_question}}
+          **Methodology:** {{methodology_plan}}
+          **Power / budget:** {{statistical_plan}}
+          **Critique:** {{critique}}
+          **Preliminary data:** {{preliminary_data}}
+
+          Produce:
+          1. Section outline matched to {{funder}}:
+             - NSF: Project Summary, Project Description (with Intellectual
+               Merit + Broader Impacts), References Cited, Biosketches, Budget
+               Justification, Data Management Plan.
+             - NIH: Specific Aims, Research Strategy (Significance, Innovation,
+               Approach), Bibliography, Biosketches, Resources, Budget.
+             - DARPA: Cover sheet, technical approach, schedule/milestones,
+               cost, team, deliverables.
+          2. Specific Aims page layout (≤1 page).
+          3. Where reviewer-objection responses are baked into the text.
+          4. Where each critique-flagged weakness is addressed.
+        output: paper_architecture
+        timeout: 600
+
+      - id: write-paper
+        agent: research:research-technical-writer
+        prompt: |
+          Write the proposal body following the architecture.
+
+          **Architecture:** {{paper_architecture}}
+          **Methodology:** {{methodology_plan}}
+          **Power / budget:** {{statistical_plan}}
+          **Critique to address:** {{critique}}
+
+          Constraints:
+          - Match {{funder}} review criteria explicitly.
+          - Each aim has measurable success criteria.
+          - Innovation claims tied to specific prior work.
+          - Timeline & milestones realistic.
+          - Budget justification tied to method/personnel.
+          - Address top reviewer objections from /critique pre-emptively.
+        output: paper_body
+        timeout: 1500
+        depends_on: [paper-architecture]
+
+      - id: design-figures
+        agent: research:figure-designer
+        prompt: |
+          Design figures / tables for the proposal.
+
+          **Architecture:** {{paper_architecture}}
+          **Methodology:** {{methodology_plan}}
+
+          Required:
+          - Timeline / Gantt chart (aims × quarters).
+          - Aims-to-methods map.
+          - Where preliminary data exists ({{preliminary_data}}): quality figures
+            with sample sizes and CIs to support feasibility.
+          - Color-blind-safe palette; printable B&W.
+        output: figures
+        timeout: 1200
+        depends_on: [paper-architecture]
+
+      - id: manage-citations
+        agent: research:research-citation-manager
+        prompt: |
+          Build the references / bibliography.
+
+          **Paper body:** {{paper_body}}
+          **Citation style:** APA (per defaults).
+
+          Verify every cited reference is real and reachable. Flag any
+          unverifiable / hallucinated citations. Verify key prior work is
+          cited where innovation claims depend on it.
+        output: citations
+        timeout: 600
+        depends_on: [write-paper]
+
+      - id: assemble-draft
+        agent: research:research-technical-writer
+        prompt: |
+          Assemble the final proposal draft package.
+
+          - Proposal body: {{paper_body}}
+          - Figures / tables: {{figures}}
+          - Citations: {{citations}}
+
+          Output a single coherent draft ready for /publish (Specific Aims
+          page first, full proposal next).
+        output: draft_complete
+        timeout: 900
+        depends_on: [design-figures, manage-citations]
+
+  # -------------------------------------------------------------------------
+  # Stage 5: PUBLISH — funder-ready output (FINAL APPROVAL GATE)
+  # -------------------------------------------------------------------------
+  - name: publish
+    description: "Funder-ready packaging with final human approval"
+    approval:
+      required: true
+      timeout: 0
+      default: deny
+      prompt: |
+        📤 **Publish Approval — Final Output Gate**
+
+        Final review before producing the funder-ready proposal package.
+
+        **Draft:** {{draft_complete}}
+        **Funder:** {{funder}}
+
+        Required checks:
+        - [ ] Feasibility ≥3.5/5 (or limitations explicit)
+        - [ ] Innovation claims concrete and tied to prior work
+        - [ ] Power analysis present for primary aim
+        - [ ] Timeline realistic for team and scope
+        - [ ] Major budget items tied to method / personnel
+        - [ ] Funder-specific sections present (NSF Broader Impacts /
+              NIH Significance+Innovation+Approach / DARPA Heilmeier)
+        - [ ] Preregistration hash recorded: {{preregistration_hash}}
+
+        ✅ Approve to format for funder submission.
+        ❌ Deny to revise.
+
+    steps:
+      - id: format-for-venue
+        agent: research:venue-formatter
+        prompt: |
+          Format the grant draft as a funder-ready package.
+
+          **Draft:** {{draft_complete}}
+          **Target funder:** {{funder}}
+          **Preregistration hash (record in supplement):** {{preregistration_hash}}
+
+          Produce:
+          - proposal.pdf (and .docx where allowed).
+          - specific-aims-page.pdf (≤1 page, formatted to funder template).
+          - preregistration.yaml (the locked plan artifact).
+          - budget-justification.xlsx.
+        output: venue_ready_doc
+        timeout: 900
+
+# Recursion protection
+recursion:
+  max_depth: 2
+  max_total_steps: 50
+
+# ===========================================================================
+# DESIGN-CONTRACT DOCUMENTATION (preserved from v0.1.0; engine ignores these
+# top-level blocks but they encode the per-mode contracts that a /command
+# session enforces. Keep them as the design source-of-truth.)
+# ===========================================================================
 
 modes:
   - id: question
@@ -21,33 +364,33 @@ modes:
   - id: plan
     purpose: Pre-registered design with power analysis and timeline
     emphasis:
-      - specific_aims  # typically 3-5 aims for NSF, 1-3 for NIH
-      - research_strategy  # methodology with power analysis
-      - innovation_claims  # what's novel and why it matters
-      - feasibility_assessment  # timeline, team, resources
-      - budget_justification  # costs tied to method, not just numbers
+      - specific_aims
+      - research_strategy
+      - innovation_claims
+      - feasibility_assessment
+      - budget_justification
   - id: critique
     purpose: Run proposal through funder rubric and assess feasibility
     emphasis:
-      - feasibility_score  # can this team deliver in the timeline?
-      - innovation_specificity  # are novelty claims concrete or vague?
-      - significance_justification  # impact is tied to evidence and logic
-      - reviewer_objections  # what will reviewers ask?
-      - power_analysis_adequacy  # are sample sizes, effect sizes realistic?
+      - feasibility_score
+      - innovation_specificity
+      - significance_justification
+      - reviewer_objections
+      - power_analysis_adequacy
   - id: draft
     purpose: Funding-agency-compliant proposal structure
     template: templates/grant-proposal-skeleton.latex
     sections:
-      - specific-aims  # 1-page summary
+      - specific-aims
       - research-strategy
       - methods-and-analysis
       - timeline-and-milestones
       - team-and-capacity
-      - broader-impacts  # NSF requirement
+      - broader-impacts
       - literature-review-and-justification
   - id: publish
     purpose: Funder-specific output
-    venue: configurable  # nsf-cise, nsf-sbir, nih-r01, darpa, eu-horizon
+    venue: configurable
     output_formats: [pdf, docx]
     artifacts:
       - proposal.pdf
@@ -56,47 +399,31 @@ modes:
       - preregistration.yaml
       - budget-justification.xlsx
 
-# ---------------------------------------------------------------------------
-# Defaults — overridable by user
-# ---------------------------------------------------------------------------
 defaults:
-  honest_pivot: false  # not applicable (no data yet)
-  exploratory_labeling: false  # not applicable
+  honest_pivot: false
+  exploratory_labeling: false
   preregistration_required: true
   citation_style: apa
-  funder: configurable  # prompt for funder early
+  funder: configurable
 
-# ---------------------------------------------------------------------------
-# Publish gates — enforced at /publish entry. Session refuses to run /publish
-# until these conditions are satisfied.
-# ---------------------------------------------------------------------------
 publish_gates:
-  # -- v0.3 workflow gates ---------------------------------------------------
   critique_required:
     enabled: true
     description: |
       /publish refuses to execute until at least one /critique pass has produced
-      a critique_report artifact for the current draft. This prevents publishing
-      work that has not been subjected to structured self-review.
+      a critique_report artifact for the current draft.
     enforcement: block
     bypass: "--no-critique-gate"
     bypass_warning: |
-      Publishing without a critique pass. The output's metadata will record
-      that critique was bypassed. This is appropriate for informal drafts and
-      internal-use documents, but not recommended for external publication.
-    artifact_required: critique.yaml  # produced by /critique mode; lives in .amplifier/sessions/<session>/
-
+      Publishing without a critique pass.
+    artifact_required: critique.yaml
   honest_pivot_acknowledged:
     enabled: false  # N/A — grant-proposal has no /execute phase
     description: |
-      If /execute produced findings that diverge from the pre-registration,
-      /publish requires the user has acknowledged each divergence via the
-      honest-pivot behavior (either labeled exploratory, amended with
-      timestamp, or disabled with --no-honest-pivot flag).
+      Not applicable: grant-proposal has no /execute phase, so there is no
+      pre-registration vs. execution divergence to acknowledge.
     enforcement: block
-    bypass: null  # Cannot be bypassed — architectural guarantee
-
-  # -- Domain-specific quality gates ----------------------------------------
+    bypass: null
   quality_gates:
     - name: feasibility_score
       condition: evaluated as "feasible" by methodologist (≥3.5/5)
@@ -114,9 +441,6 @@ publish_gates:
       condition: major budget line items tied to methods or personnel needs
       on_fail: warn
 
-# ---------------------------------------------------------------------------
-# Persona detection hints
-# ---------------------------------------------------------------------------
 persona_signals:
   persona_b_indicators:
     - user mentions a funder or funding program

@@ -171,3 +171,63 @@ def test_calibration_report_round_trip_to_dict():
     assert "brier" in d
     assert "reliability_bins" in d
     assert len(d["reliability_bins"]) == 10
+
+
+# -----------------------------------------------------------------
+# CLI subprocess integration test (v0.8.3)
+# Exercises the `amplifier-research-power calibration` end-to-end
+# via subprocess to confirm the CLI subcommand is wired correctly.
+# -----------------------------------------------------------------
+
+def test_cli_calibration_end_to_end(tmp_path):
+    """Invoke the CLI subcommand with a small JSONL fixture; check exit 0
+    and the JSON output contains expected keys."""
+    import json
+    import subprocess
+    import sys
+
+    # Write a tiny JSONL fixture: 4 items spanning the confidence space
+    records = [
+        {"item_id": "f4-001", "confidence": 0.9, "correct": True},
+        {"item_id": "f4-002", "confidence": 0.8, "correct": True},
+        {"item_id": "f4-003", "confidence": 0.7, "correct": False},
+        {"item_id": "f4-004", "confidence": 0.6, "correct": False},
+    ]
+    fixture = tmp_path / "calibration_fixture.jsonl"
+    fixture.write_text("\n".join(json.dumps(r) for r in records))
+
+    # Output report path
+    report = tmp_path / "calibration_report.json"
+
+    # Invoke the CLI via the installed entry point (amplifier-research-power)
+    # Falls back to python -m amplifier_research_power.cli if entry point
+    # not on PATH (e.g., when running from a fresh checkout).
+    result = subprocess.run(
+        [
+            sys.executable, "-m", "amplifier_research_power.cli",
+            "calibration",
+            "--records", str(fixture),
+            "--bins", "10",
+            "--output", str(report),
+        ],
+        capture_output=True, text=True, timeout=30,
+    )
+    assert result.returncode == 0, f"CLI exited non-zero: {result.stderr}"
+    assert report.exists(), "CLI did not write report file"
+
+    # The report should contain a JSON dict with the expected keys
+    rep = json.loads(report.read_text())
+    assert rep["n"] == 4
+    assert rep["n_bins"] == 10
+    assert "ece" in rep
+    assert "brier" in rep
+    assert "reliability_bins" in rep
+    assert len(rep["reliability_bins"]) == 10
+
+    # Expected ECE for this fixture (size-weighted gap):
+    # Bin 6 (0.6-0.7): n=1, conf=0.6, acc=0.0 -> gap=0.6, weighted=0.15
+    # Bin 7 (0.7-0.8): n=1, conf=0.7, acc=0.0 -> gap=0.7, weighted=0.175
+    # Bin 8 (0.8-0.9): n=1, conf=0.8, acc=1.0 -> gap=0.2, weighted=0.05
+    # Bin 9 (0.9-1.0): n=1, conf=0.9, acc=1.0 -> gap=0.1, weighted=0.025
+    # ECE = 0.15 + 0.175 + 0.05 + 0.025 = 0.40
+    assert rep["ece"] == pytest.approx(0.40, abs=0.01)

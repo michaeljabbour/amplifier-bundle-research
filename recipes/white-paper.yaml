@@ -1,16 +1,357 @@
 name: white-paper
-version: 0.1.0
+version: 0.2.0
 description: |
   Technical white paper for business decision-makers and technical evaluators.
   Designed for founders, engineers, and analysts to defend a technical thesis through
   evidence, comparative analysis, and practical case studies.
 
-# ---------------------------------------------------------------------------
-# Mode sequence — full six-mode pipeline
-# ---------------------------------------------------------------------------
+  v0.2.0: Added executable `stages:` block. The pre-existing `modes:`, `defaults:`,
+  `behaviors:`, `persona_signals:`, and `publish_gates:` blocks are preserved AS
+  DOCUMENTATION below — they encode the design contracts a session enforces. The
+  engine ignores them; the executable workflow lives in `stages:`.
 
+  NOTE: This is a non-academic persona. Cross-vendor judge enforcement is NOT
+  applied (no rubric-graded benchmarking). Cache-only mode remains available.
+
+# ---------------------------------------------------------------------------
+# Input context (engine-bound)
+# ---------------------------------------------------------------------------
 context:
-  cache_only: false                # v0.8.1: opt-in cache-only mode for committee verification
+  cache_only: false      # v0.8.1: opt-in cache-only mode for committee verification
+  thesis: ""             # Required: the technical thesis being defended
+  competitors: ""        # Optional: known competing approaches
+  case_studies: ""       # Optional: case-study inputs
+  audience: "business-decision-maker"  # Default audience
+
+# ===========================================================================
+# EXECUTABLE STAGES (engine runs these)
+# ===========================================================================
+stages:
+  # -------------------------------------------------------------------------
+  # Stage 1: QUESTION — sharpen technical thesis into falsifiable claims
+  # -------------------------------------------------------------------------
+  - name: question
+    description: "Sharpen the technical thesis into falsifiable claims"
+    steps:
+      - id: sharpen-question
+        agent: research:hypothesis-designer
+        prompt: |
+          Sharpen the technical thesis into a defensible structure.
+
+          **Thesis:** {{thesis}}
+          **Known competitors / alternatives:** {{competitors}}
+          **Case-study inputs:** {{case_studies}}
+
+          Produce:
+          1. A one-sentence statement of the thesis.
+          2. Why it's different from existing approaches (the differentiator).
+          3. The 2–4 falsifiable claims the thesis depends on.
+          4. What evidence would prove each claim.
+          5. What evidence would disprove each claim.
+          6. Audience: {{audience}} — frame the decision they need to make.
+        output: sharpened_question
+        timeout: 600
+
+  # -------------------------------------------------------------------------
+  # Stage 2: PLAN — lock thesis + evidence-gathering strategy
+  #          (LOAD-BEARING APPROVAL GATE)
+  # -------------------------------------------------------------------------
+  - name: plan
+    description: "Lock thesis, evidence scope, competitive analysis, bias-risk plan"
+    approval:
+      required: true
+      timeout: 0
+      default: deny
+      prompt: |
+        🔒 **Thesis & Evidence-Strategy Lock — Approval Required**
+
+        Lock the thesis and evidence scope BEFORE gathering evidence. Without
+        this lock, motivated reasoning will quietly tilt evidence selection
+        toward the desired conclusion.
+
+        **Sharpened thesis & claims:**
+        {{sharpened_question}}
+
+        **Methodology plan (evidence scope + competitive analysis + bias risks):**
+        {{methodology_plan}}
+
+        **Evidence / synthesis plan:**
+        {{statistical_plan}}
+
+        **Preregistration review (hash):**
+        {{preregistration_hash}}
+
+        Required checks:
+        - [ ] Thesis is one sentence and falsifiable
+        - [ ] Evidence scope locked (what counts, what doesn't)
+        - [ ] ≥2 competitors / alternatives planned for analysis
+        - [ ] Bias-risk inventory completed
+        - [ ] Disconfirming-evidence search planned
+        - [ ] SHA256 hash captured
+
+        ✅ Approve to lock and run evidence gathering.
+        ❌ Deny to revise.
+
+    steps:
+      - id: methodology-design
+        agent: research:methodologist
+        prompt: |
+          Design the evidence-gathering strategy for the white paper.
+
+          **Thesis & claims:** {{sharpened_question}}
+
+          Lock:
+          - Evidence scope: benchmarks, case studies, qualitative analysis,
+            primary research, public reports, etc. — and what's out of scope.
+          - Competitive analysis: which alternatives, depth per alternative.
+          - Case-study plan: ≥3 case studies, selection criteria.
+          - Optional benchmarking plan (if quantitative claims are made).
+          - Bias-risk inventory: motivated-reasoning entry points and how
+            we will guard against them (e.g., disconfirming-evidence search).
+        output: methodology_plan
+        timeout: 900
+
+      - id: statistical-plan
+        agent: research:statistician
+        prompt: |
+          Define the synthesis / weighting plan.
+
+          **Thesis & claims:** {{sharpened_question}}
+          **Methodology:** {{methodology_plan}}
+
+          Lock:
+          - Per-claim minimum evidence strength to assert (≥3 independent sources).
+          - How quantitative benchmark claims are reported (variance, sample size).
+          - How case studies are weighted (n=1 vs. corroborating set).
+          - Generalization-limits scoring: where the evidence applies and where
+            it doesn't.
+          - How overclaim language is detected (superlatives without numbers).
+        output: statistical_plan
+        timeout: 600
+        depends_on: [methodology-design]
+
+      - id: preregistration-review
+        agent: research:preregistration-reviewer
+        prompt: |
+          Review the assembled white-paper plan.
+
+          **Methodology:** {{methodology_plan}}
+          **Synthesis plan:** {{statistical_plan}}
+
+          Tasks:
+          1. Verify the disconfirming-evidence search is real, not token.
+          2. Verify ≥2 competitors are in scope.
+          3. Identify motivated-reasoning entry points.
+          4. Compute/simulate SHA256 hash of canonicalized plan.
+          5. Recommend any edits before locking.
+
+          Return the hash and a yes/no on lock-readiness.
+        output: preregistration_hash
+        timeout: 600
+        depends_on: [statistical-plan]
+
+  # -------------------------------------------------------------------------
+  # Stage 3: EXECUTE — evidence gathering and analysis
+  # -------------------------------------------------------------------------
+  - name: execute
+    description: "Run competitive analysis, case-study research, benchmarks"
+    steps:
+      - id: gather-evidence
+        agent: research:statistician
+        prompt: |
+          Execute the locked evidence-gathering plan.
+
+          **Locked plan (hash {{preregistration_hash}}):**
+          - Methodology: {{methodology_plan}}
+          - Synthesis plan: {{statistical_plan}}
+
+          Tasks:
+          1. Competitive analysis: ≥2 alternatives, depth per the plan.
+          2. Case-study research: ≥3 cases, applying the locked selection criteria.
+          3. Optional benchmarking: if applicable, with variance and sample-size reporting.
+          4. Run an explicit disconfirming-evidence search (not just confirming).
+          5. Map evidence → claims; mark unsupported claims explicitly.
+          6. Identify generalization limits for each finding.
+          7. Any deviation from the locked plan is logged as honest-pivot.
+
+          Return: competitive table, case-study summaries, benchmark results
+          (if any), disconfirming-evidence summary, deviation log.
+        output: results
+        timeout: 1800
+
+  # -------------------------------------------------------------------------
+  # Stage 4: CRITIQUE — thesis defense + overclaim detection
+  # -------------------------------------------------------------------------
+  - name: critique
+    description: "Honest-critic: thesis defense, overclaim detection, evidence gaps"
+    steps:
+      - id: honest-critique
+        agent: research:honest-critic
+        prompt: |
+          Honest-critic review of the white-paper material.
+
+          **Thesis & claims:** {{sharpened_question}}
+          **Locked plan:** {{methodology_plan}}
+          **Evidence + competitive + case-study output:** {{results}}
+
+          Score (1–5) AND describe weaknesses concretely:
+          1. Thesis defense — does evidence actually support the main claim?
+          2. Overclaim detection — flag superlatives ("significantly",
+             "dramatically", "best-in-class") without supporting numbers.
+          3. Evidence gaps — what key evidence is missing or weak?
+          4. Generalization limits — does evidence apply broadly or narrowly?
+          5. Competitive fairness — alternatives stated in their strongest form?
+          6. Disconfirming-evidence honesty — was the disconfirming search real?
+
+          Be uncharitable. If a case study is n=1 and the claim is general,
+          say so. If a competitor is being strawmanned, name the steelman.
+        output: critique
+        timeout: 1200
+
+  # -------------------------------------------------------------------------
+  # Stage 5: DRAFT — white-paper structured output
+  # -------------------------------------------------------------------------
+  - name: draft
+    description: "Architect → write → figures → cite → final assembly"
+    steps:
+      - id: paper-architecture
+        agent: research:methodologist
+        prompt: |
+          Plan the white-paper structure before writing.
+
+          **Thesis & claims:** {{sharpened_question}}
+          **Methodology:** {{methodology_plan}}
+          **Evidence:** {{results}}
+          **Critique:** {{critique}}
+
+          Produce:
+          1. Section outline (Executive Summary, Problem Statement, Proposed
+             Solution, Competitive Landscape, Case Studies, Evidence & Analysis,
+             Limitations, Recommendations).
+          2. Per-section key claims and evidence map.
+          3. Where overclaim risks identified by /critique are softened.
+          4. Where the strongest competitor is fairly characterized.
+          5. Audience reading level: {{audience}}.
+        output: paper_architecture
+        timeout: 600
+
+      - id: write-paper
+        agent: research:research-technical-writer
+        prompt: |
+          Write the white-paper body following the architecture.
+
+          **Architecture:** {{paper_architecture}}
+          **Evidence:** {{results}}
+          **Critique:** {{critique}}
+
+          Constraints:
+          - Audience reading level: {{audience}} (not academic).
+          - No unqualified superlatives (every "significantly" must come with a number).
+          - Each major claim cites ≥3 independent evidence sources where possible.
+          - Limitations section substantive, not boilerplate.
+          - Recommendations actionable, not abstract.
+        output: paper_body
+        timeout: 1500
+        depends_on: [paper-architecture]
+
+      - id: design-figures
+        agent: research:figure-designer
+        prompt: |
+          Design figures / tables for the white paper.
+
+          **Architecture:** {{paper_architecture}}
+          **Evidence:** {{results}}
+
+          Required:
+          - Competitive landscape table (alternative ↔ tradeoff axes).
+          - Case-study summary visual.
+          - Where benchmarks exist: bar/line charts with variance bars.
+          - Color-blind-safe palette; printable in B&W.
+        output: figures
+        timeout: 1200
+        depends_on: [paper-architecture]
+
+      - id: manage-citations
+        agent: research:research-citation-manager
+        prompt: |
+          Build the references list.
+
+          **Paper body:** {{paper_body}}
+          **Citation style:** APA (per defaults).
+
+          Verify every cited source is real and reachable. Flag any
+          unverifiable / hallucinated citations. Verify case-study sources
+          have stable identifiers.
+        output: citations
+        timeout: 600
+        depends_on: [write-paper]
+
+      - id: assemble-draft
+        agent: research:research-technical-writer
+        prompt: |
+          Assemble the final white-paper draft package.
+
+          - Paper body: {{paper_body}}
+          - Figures / tables: {{figures}}
+          - Citations: {{citations}}
+
+          Output a single coherent draft ready for /publish.
+        output: draft_complete
+        timeout: 900
+        depends_on: [design-figures, manage-citations]
+
+  # -------------------------------------------------------------------------
+  # Stage 6: PUBLISH — publication-ready output (FINAL APPROVAL GATE)
+  # -------------------------------------------------------------------------
+  - name: publish
+    description: "Publication-ready packaging with final human approval"
+    approval:
+      required: true
+      timeout: 0
+      default: deny
+      prompt: |
+        📤 **Publish Approval — Final Output Gate**
+
+        Final review before producing the white paper.
+
+        **Draft:** {{draft_complete}}
+
+        Required checks:
+        - [ ] Thesis statement ≤2 sentences and falsifiable
+        - [ ] ≥3 independent sources per major claim (or limitation flagged)
+        - [ ] No unqualified superlative claims
+        - [ ] ≥2 competitor / alternative solutions analyzed
+        - [ ] Preregistration hash recorded: {{preregistration_hash}}
+
+        ✅ Approve to format for output.
+        ❌ Deny to revise.
+
+    steps:
+      - id: format-for-venue
+        agent: research:venue-formatter
+        prompt: |
+          Format the white-paper draft as a publication-ready package.
+
+          **Draft:** {{draft_complete}}
+          **Preregistration hash (record in supplement):** {{preregistration_hash}}
+
+          Produce:
+          - white-paper.pdf and .docx.
+          - competitive-table.xlsx.
+          - evidence-summary.yaml.
+        output: venue_ready_doc
+        timeout: 900
+
+# Recursion protection
+recursion:
+  max_depth: 2
+  max_total_steps: 50
+
+# ===========================================================================
+# DESIGN-CONTRACT DOCUMENTATION (preserved from v0.1.0; engine ignores these
+# top-level blocks but they encode the per-mode contracts that a /command
+# session enforces. Keep them as the design source-of-truth.)
+# ===========================================================================
 
 modes:
   - id: question
@@ -22,10 +363,10 @@ modes:
   - id: plan
     purpose: Lock the thesis and evidence-gathering strategy
     emphasis:
-      - thesis_clarity  # can it be stated in one sentence?
-      - evidence_scope  # what counts as evidence (benchmarks, case studies, analysis)
-      - competitive_analysis  # which solutions to compare against
-      - bias_risks  # motivated reasoning detection
+      - thesis_clarity
+      - evidence_scope
+      - competitive_analysis
+      - bias_risks
   - id: execute
     purpose: Evidence gathering and analysis
     tools:
@@ -38,10 +379,10 @@ modes:
   - id: critique
     purpose: Thesis defensibility and overclaim detection
     emphasis:
-      - thesis_defense  # does evidence actually support the main claim?
-      - overclaiming  # flag "significantly", "dramatically", "best-in-class" without numbers
-      - evidence_gaps  # what key evidence is missing?
-      - generalization_limits  # does evidence apply broadly or narrowly?
+      - thesis_defense
+      - overclaiming
+      - evidence_gaps
+      - generalization_limits
   - id: draft
     purpose: Technical white paper structure
     template: templates/white-paper-skeleton.md
@@ -63,47 +404,30 @@ modes:
       - competitive-table.xlsx
       - evidence-summary.yaml
 
-# ---------------------------------------------------------------------------
-# Defaults — overridable by user
-# ---------------------------------------------------------------------------
 defaults:
   honest_pivot: true
   exploratory_labeling: true
-  preregistration_required: false  # lighter than empirical papers
+  preregistration_required: false
   citation_style: apa
   target_audience: business-decision-maker
 
-# ---------------------------------------------------------------------------
-# Publish gates — enforced at /publish entry. Session refuses to run /publish
-# until these conditions are satisfied.
-# ---------------------------------------------------------------------------
 publish_gates:
-  # -- v0.3 workflow gates ---------------------------------------------------
   critique_required:
     enabled: true
     description: |
       /publish refuses to execute until at least one /critique pass has produced
-      a critique_report artifact for the current draft. This prevents publishing
-      work that has not been subjected to structured self-review.
+      a critique_report artifact for the current draft.
     enforcement: block
     bypass: "--no-critique-gate"
     bypass_warning: |
-      Publishing without a critique pass. The output's metadata will record
-      that critique was bypassed. This is appropriate for informal drafts and
-      internal-use documents, but not recommended for external publication.
-    artifact_required: critique.yaml  # produced by /critique mode; lives in .amplifier/sessions/<session>/
-
+      Publishing without a critique pass.
+    artifact_required: critique.yaml
   honest_pivot_acknowledged:
-    enabled: true  # Fires only if /plan produced a pre-registration; skip-safe otherwise.
+    enabled: true
     description: |
-      If /execute produced findings that diverge from the pre-registration,
-      /publish requires the user has acknowledged each divergence via the
-      honest-pivot behavior (either labeled exploratory, amended with
-      timestamp, or disabled with --no-honest-pivot flag).
+      Fires only if /plan produced a pre-registration; skip-safe otherwise.
     enforcement: block
-    bypass: null  # Cannot be bypassed — architectural guarantee
-
-  # -- Domain-specific quality gates ----------------------------------------
+    bypass: null
   quality_gates:
     - name: thesis_clarity
       condition: thesis statement is ≤2 sentences and falsifiable
@@ -118,9 +442,6 @@ publish_gates:
       condition: ≥2 competitor/alternative solutions analyzed
       on_fail: warn
 
-# ---------------------------------------------------------------------------
-# Persona detection hints
-# ---------------------------------------------------------------------------
 persona_signals:
   persona_a_indicators:
     - user has a business or technical thesis

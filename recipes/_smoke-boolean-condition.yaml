@@ -1,0 +1,64 @@
+# Internal smoke-test for the engine's boolean-string variable substitution
+# behavior in conditions. Tests whether `condition: "{{var}} == 'true'"`
+# matches a YAML bool true (which the engine may stringify as "True" or "true").
+#
+# Run via: amplifier tool invoke recipes operation=validate \
+#            recipe_path=recipes/_smoke-boolean-condition.yaml
+#
+# Findings update v0.8.3:
+#   The engine rejects `class:` inside provider_preferences entries (per
+#   recipe-author audit). The defensive stringification convention
+#   (context vars as `"true"` / `"false"` strings) is the canonical pattern
+#   for any conditional in this bundle's recipes.
+
+name: _smoke-boolean-condition
+version: 0.1.0
+description: |
+  Internal smoke-test recipe for engine boolean-string coercion semantics.
+  Not for end-user invocation. The underscore filename prefix marks this as
+  bundle-internal and excludes it from validate-all-recipes.sh by default.
+
+context:
+  flag_string_true: "true"
+  flag_yaml_bool_true: true
+  flag_string_false: "false"
+  flag_string_random: "abc"
+
+steps:
+  - id: when-string-true-runs
+    agent: research:research-coordinator
+    condition: "{{flag_string_true}} == 'true'"
+    prompt: |
+      Reached by condition: "{{flag_string_true}} == 'true'".
+      Emit JSON: {"reached": "string-true"}
+    output: result_string_true
+    parse_json: true
+
+  - id: when-yaml-bool-runs
+    agent: research:research-coordinator
+    condition: "{{flag_yaml_bool_true}} == 'true'"
+    prompt: |
+      Reached by condition: "{{flag_yaml_bool_true}} == 'true'".
+      If you see this, the engine stringifies YAML bool true -> "true".
+      Emit JSON: {"reached": "yaml-bool"}
+    output: result_yaml_bool
+    parse_json: true
+
+  - id: when-false-skipped
+    agent: research:research-coordinator
+    condition: "{{flag_string_false}} == 'true'"
+    prompt: |
+      This step should be SKIPPED. If you see this output, condition handling
+      is wrong (false should NOT equal 'true').
+      Emit JSON: {"reached": "false-NOT-skipped-BUG"}
+    output: result_false_skipped
+    parse_json: true
+
+  - id: when-not-equal-runs
+    agent: research:research-coordinator
+    condition: "{{flag_string_random}} != 'true'"
+    prompt: |
+      Reached by condition: "{{flag_string_random}} != 'true'".
+      Emit JSON: {"reached": "negation"}
+    output: result_negation
+    parse_json: true

@@ -1,16 +1,370 @@
 name: literature-review
-version: 0.1.0
+version: 0.2.0
 description: |
   Structured literature review or systematic review. Designed for researchers,
   policy analysts, and clinicians to systematically search, extract, and synthesize
   evidence. Includes PRISMA compliance checklist and multi-database search logging.
 
-# ---------------------------------------------------------------------------
-# Mode sequence — full six-mode pipeline, search-heavy
-# ---------------------------------------------------------------------------
+  v0.2.0: Added executable `stages:` block. The pre-existing `modes:`, `defaults:`,
+  `behaviors:`, `persona_signals:`, and `publish_gates:` blocks are preserved AS
+  DOCUMENTATION below — they encode the design contracts a session enforces. The
+  engine ignores them; the executable workflow lives in `stages:`.
 
+# ---------------------------------------------------------------------------
+# Input context (engine-bound)
+# ---------------------------------------------------------------------------
 context:
-  cache_only: false                # v0.8.1: opt-in cache-only mode for committee verification
+  cache_only: false        # v0.8.1: opt-in cache-only mode for committee verification
+  topic: ""                # Required: review topic / question
+  population: ""           # Optional: PICO — population
+  intervention: ""         # Optional: PICO — intervention
+  comparator: ""           # Optional: PICO — comparator
+  outcomes: ""             # Optional: PICO — outcomes
+  databases: "pubmed, web-of-science, google-scholar"  # Default search venues
+  review_type: "systematic"  # Options: systematic | narrative | scoping
+
+# ===========================================================================
+# EXECUTABLE STAGES (engine runs these — 6 stages mapped to 6 modes)
+# ===========================================================================
+stages:
+  # -------------------------------------------------------------------------
+  # Stage 1: QUESTION — sharpen review scope and PICO
+  # -------------------------------------------------------------------------
+  - name: question
+    description: "Sharpen review question, PICO, and inclusion/exclusion criteria"
+    steps:
+      - id: sharpen-question
+        agent: research:hypothesis-designer
+        prompt: |
+          Sharpen the review question for a {{review_type}} review.
+
+          **Topic:** {{topic}}
+          **PICO scaffold (fill any gaps):**
+          - Population: {{population}}
+          - Intervention: {{intervention}}
+          - Comparator: {{comparator}}
+          - Outcomes: {{outcomes}}
+
+          Produce:
+          1. A focused, answerable review question.
+          2. Locked inclusion criteria (study designs, languages, dates, ...).
+          3. Locked exclusion criteria.
+          4. Why this synthesis is worth doing now (what's missing in prior reviews?).
+          5. Expected evidence types (RCTs, observational, qualitative, ...).
+        output: sharpened_question
+        timeout: 600
+
+  # -------------------------------------------------------------------------
+  # Stage 2: PLAN — lock search strategy + synthesis framework
+  #          (LOAD-BEARING APPROVAL GATE; PRISMA-style preregistration)
+  # -------------------------------------------------------------------------
+  - name: plan
+    description: "Lock search strategy, databases, extraction template, synthesis framework"
+    approval:
+      required: true
+      timeout: 0
+      default: deny
+      prompt: |
+        🔒 **Search Strategy Lock — Approval Required**
+
+        Lock the search strategy and synthesis framework BEFORE running searches.
+        This is the literature-review analogue of pre-registration. Ad-hoc query
+        tweaks after seeing hits will be flagged as honest-pivots.
+
+        **Sharpened question:**
+        {{sharpened_question}}
+
+        **Methodology plan (search strategy, databases, screening protocol):**
+        {{methodology_plan}}
+
+        **Statistical / synthesis plan:**
+        {{statistical_plan}}
+
+        **Preregistration review (hash):**
+        {{preregistration_hash}}
+
+        Required checks:
+        - [ ] Search syntax locked per database
+        - [ ] ≥2 major databases planned
+        - [ ] Inclusion / exclusion criteria operationalized
+        - [ ] Extraction template defined
+        - [ ] Synthesis framework matches review type ({{review_type}})
+        - [ ] PRISMA flow plan ready
+
+        ✅ Approve to lock and run searches.
+        ❌ Deny to revise.
+
+    steps:
+      - id: methodology-design
+        agent: research:methodologist
+        prompt: |
+          Design the search strategy and review methodology.
+
+          **Question:** {{sharpened_question}}
+          **Target databases:** {{databases}}
+
+          Lock:
+          - Search syntax for each database (keywords + MeSH + boolean).
+          - Date range, languages, study-type filters.
+          - Inclusion / exclusion criteria operationalized.
+          - Screening protocol (single vs. dual review).
+          - Data extraction template (per-paper fields recorded).
+          - Bias / quality assessment instrument (e.g., RoB 2, GRADE).
+          - Forward / backward citation chasing plan.
+          - Gray-literature plan.
+        output: methodology_plan
+        timeout: 900
+
+      - id: statistical-plan
+        agent: research:statistician
+        prompt: |
+          Define the synthesis plan.
+
+          **Question:** {{sharpened_question}}
+          **Methodology / search plan:** {{methodology_plan}}
+          **Review type:** {{review_type}}
+
+          Lock:
+          - Synthesis framework: narrative | meta-analytic | evidence map | realist.
+          - If meta-analytic: effect-size metric, model (fixed/random), heterogeneity
+            handling (I², τ²), subgroup / sensitivity analyses.
+          - Publication-bias assessment plan.
+          - How extraction reliability will be checked.
+          - Pre-specified vs. exploratory subgroup analyses.
+
+          Output a synthesis plan ready for pre-registration.
+        output: statistical_plan
+        timeout: 900
+        depends_on: [methodology-design]
+
+      - id: preregistration-review
+        agent: research:preregistration-reviewer
+        prompt: |
+          Review the assembled review pre-registration.
+
+          **Methodology / search plan:** {{methodology_plan}}
+          **Synthesis plan:** {{statistical_plan}}
+
+          Tasks:
+          1. Verify completeness against PRISMA-P (preregistration) checklist.
+          2. Identify ambiguity that would let post-hoc query tweaking slip in.
+          3. Compute/simulate SHA256 hash of canonicalized preregistration.
+          4. Recommend any edits before locking.
+
+          Return the hash and a yes/no on lock-readiness.
+        output: preregistration_hash
+        timeout: 600
+        depends_on: [statistical-plan]
+
+  # -------------------------------------------------------------------------
+  # Stage 3: EXECUTE — search, screen, extract, synthesize
+  # -------------------------------------------------------------------------
+  - name: execute
+    description: "Run systematic search, screen, extract data, synthesize evidence"
+    steps:
+      - id: run-search-and-extraction
+        agent: research:statistician
+        prompt: |
+          Execute the locked search, screening, and extraction protocol.
+
+          **Locked plan (hash {{preregistration_hash}}):**
+          - Methodology / search plan: {{methodology_plan}}
+          - Synthesis plan: {{statistical_plan}}
+
+          Tasks:
+          1. Run searches in each database with the locked syntax; log hit counts.
+          2. Apply inclusion / exclusion criteria; record reasons for exclusion.
+          3. Build PRISMA flow diagram counts (identified → screened → eligible → included).
+          4. Extract data using the locked template for each included study.
+          5. Apply quality / risk-of-bias assessment.
+          6. Run the synthesis (narrative / meta-analytic / evidence map).
+          7. Any deviation from the locked plan is logged as honest-pivot.
+
+          Return: search log, PRISMA counts, extraction table, synthesis output.
+        output: results
+        timeout: 1800
+
+  # -------------------------------------------------------------------------
+  # Stage 4: CRITIQUE — PRISMA compliance + synthesis quality
+  # -------------------------------------------------------------------------
+  - name: critique
+    description: "Honest-critic review for PRISMA compliance and synthesis fairness"
+    steps:
+      - id: honest-critique
+        agent: research:honest-critic
+        prompt: |
+          Honest-critic review of the literature review.
+
+          **Question:** {{sharpened_question}}
+          **Locked methodology:** {{methodology_plan}}
+          **Synthesis plan:** {{statistical_plan}}
+          **Preregistration hash:** {{preregistration_hash}}
+          **Search + extraction + synthesis output:** {{results}}
+
+          Score (1–5) AND describe weaknesses concretely:
+          1. PRISMA compliance — 27-item checklist coverage.
+          2. Search completeness — multiple databases, gray lit, citation chasing?
+          3. Extraction consistency — reliability check done?
+          4. Synthesis quality — conclusions proportionate to evidence base?
+          5. Bias assessment — publication bias, study quality scoring done?
+          6. Honest-pivot enforcement — search-strategy deviations flagged?
+
+          Be uncharitable. If a single database was searched, say so. If
+          conclusions exceed the included evidence, flag as overclaim.
+        output: critique
+        timeout: 1200
+
+  # -------------------------------------------------------------------------
+  # Stage 5: DRAFT — systematic-review structured output
+  # -------------------------------------------------------------------------
+  - name: draft
+    description: "Architect → write → figures → cite → final assembly"
+    steps:
+      - id: paper-architecture
+        agent: research:research-paper-architect
+        prompt: |
+          Plan the {{review_type}} review structure before writing.
+
+          **Question:** {{sharpened_question}}
+          **Methodology:** {{methodology_plan}}
+          **Synthesis plan:** {{statistical_plan}}
+          **Results:** {{results}}
+          **Critique:** {{critique}}
+
+          Produce:
+          1. Section outline (Abstract, Intro, Methods, Results, Synthesis,
+             Discussion, Limitations, Conclusions, PRISMA appendix).
+          2. PRISMA flow diagram layout.
+          3. Study-characteristics table layout.
+          4. Where bias assessment lives in-text.
+          5. Search-strategy log placement.
+          6. Where evidence-map visualization is referenced.
+        output: paper_architecture
+        timeout: 600
+
+      - id: write-paper
+        agent: research:research-technical-writer
+        prompt: |
+          Write the systematic review body following the architecture.
+
+          **Architecture:** {{paper_architecture}}
+          **Results:** {{results}}
+          **Critique:** {{critique}}
+
+          Constraints:
+          - Match conclusions to evidence base size and quality.
+          - Use structured abstract.
+          - Methods section reproducible from text alone.
+          - Limitations section is required and substantive.
+          - PRISMA appendix attached.
+        output: paper_body
+        timeout: 1500
+        depends_on: [paper-architecture]
+
+      - id: design-figures
+        agent: research:figure-designer
+        prompt: |
+          Design the review figures.
+
+          **Architecture:** {{paper_architecture}}
+          **Results:** {{results}}
+
+          Required:
+          - PRISMA flow diagram (boxes + counts + reasons).
+          - Evidence map / forest plot (depending on synthesis type).
+          - Risk-of-bias summary figure.
+          - Color-blind-safe palette.
+        output: figures
+        timeout: 1200
+        depends_on: [paper-architecture]
+
+      - id: manage-citations
+        agent: research:research-citation-manager
+        prompt: |
+          Build the reference list. For a systematic review, the included-studies
+          list is itself a deliverable — verify every included study has a
+          complete bibliographic entry.
+
+          **Paper body:** {{paper_body}}
+          **Citation style:** APA (per defaults).
+
+          Verify every in-text cite is real and reachable. Flag hallucinated
+          citations. Confirm "included studies" list is complete and matches
+          the PRISMA flow counts.
+        output: citations
+        timeout: 600
+        depends_on: [write-paper]
+
+      - id: assemble-draft
+        agent: research:research-technical-writer
+        prompt: |
+          Assemble the final review draft package.
+
+          - Paper body: {{paper_body}}
+          - Figures (incl. PRISMA flow): {{figures}}
+          - Citations + included-studies list: {{citations}}
+
+          Output a single coherent draft ready for /publish.
+        output: draft_complete
+        timeout: 900
+        depends_on: [design-figures, manage-citations]
+
+  # -------------------------------------------------------------------------
+  # Stage 6: PUBLISH — journal-ready output (FINAL APPROVAL GATE)
+  # -------------------------------------------------------------------------
+  - name: publish
+    description: "Journal-ready packaging with final human approval"
+    approval:
+      required: true
+      timeout: 0
+      default: deny
+      prompt: |
+        📤 **Publish Approval — Final Output Gate**
+
+        Final review before producing journal-ready artifacts.
+
+        **Draft:** {{draft_complete}}
+
+        Required checks:
+        - [ ] PRISMA checklist ≥24/27 items addressed (or flagged N/A)
+        - [ ] ≥2 major databases searched
+        - [ ] Extraction table covers all included studies
+        - [ ] Search syntax + hit counts documented
+        - [ ] Synthesis method matches scope ({{review_type}})
+        - [ ] Preregistration hash recorded: {{preregistration_hash}}
+
+        ✅ Approve to format for venue.
+        ❌ Deny to revise.
+
+    steps:
+      - id: format-for-venue
+        agent: research:venue-formatter
+        prompt: |
+          Format the systematic-review draft for journal submission.
+
+          **Draft:** {{draft_complete}}
+          **Preregistration hash (record in supplement):** {{preregistration_hash}}
+
+          Produce:
+          - systematic-review.pdf (and .docx where appropriate).
+          - study-characteristics-table.xlsx.
+          - extraction-data.xlsx.
+          - prisma-checklist.yaml.
+          - search-strategy-log.txt.
+          - evidence-map-visualization.png.
+        output: venue_ready_doc
+        timeout: 900
+
+# Recursion protection
+recursion:
+  max_depth: 2
+  max_total_steps: 60
+
+# ===========================================================================
+# DESIGN-CONTRACT DOCUMENTATION (preserved from v0.1.0; engine ignores these
+# top-level blocks but they encode the per-mode contracts that a /command
+# session enforces. Keep them as the design source-of-truth.)
+# ===========================================================================
 
 modes:
   - id: question
@@ -22,11 +376,11 @@ modes:
   - id: plan
     purpose: Lock search strategy, databases, and synthesis framework
     emphasis:
-      - search_terms  # keywords, MeSH, syntax for each database
-      - databases  # PubMed, ERIC, Web of Science, Google Scholar, others
-      - inclusion_exclusion_criteria  # population, intervention, comparator, outcomes, study design
-      - data_extraction_template  # what gets recorded from each paper
-      - synthesis_framework  # narrative, meta-analysis, evidence mapping, realist synthesis
+      - search_terms
+      - databases
+      - inclusion_exclusion_criteria
+      - data_extraction_template
+      - synthesis_framework
   - id: execute
     purpose: Systematic search and evidence extraction
     tools:
@@ -43,20 +397,20 @@ modes:
   - id: critique
     purpose: PRISMA compliance and synthesis quality
     emphasis:
-      - prisma_compliance  # 27-item PRISMA checklist
-      - search_completeness  # multiple databases, gray literature, forward/backward citation
-      - extraction_consistency  # extraction reliability check
-      - synthesis_quality  # are conclusions proportionate to evidence base?
-      - bias_assessment  # publication bias, study quality scoring
+      - prisma_compliance
+      - search_completeness
+      - extraction_consistency
+      - synthesis_quality
+      - bias_assessment
   - id: draft
     purpose: Structured literature review or systematic review
     template: templates/systematic-review-skeleton.md
     sections:
-      - abstract  # structured abstract
+      - abstract
       - introduction
-      - methods  # search strategy, inclusion criteria, databases
-      - results  # study selection flow, study characteristics, extraction table
-      - evidence-synthesis  # narrative or meta-analytic
+      - methods
+      - results
+      - evidence-synthesis
       - discussion
       - limitations
       - conclusions
@@ -72,48 +426,31 @@ modes:
       - search-strategy-log.txt
       - evidence-map-visualization.png
 
-# ---------------------------------------------------------------------------
-# Defaults — overridable by user
-# ---------------------------------------------------------------------------
 defaults:
-  honest_pivot: false  # not applicable (synthesis, not testing)
-  exploratory_labeling: false  # not applicable
+  honest_pivot: false
+  exploratory_labeling: false
   preregistration_required: true
-  preregistration_venue: osf  # Open Science Framework
+  preregistration_venue: osf
   citation_style: apa
-  review_type: systematic  # or narrative
+  review_type: systematic
 
-# ---------------------------------------------------------------------------
-# Publish gates — enforced at /publish entry. Session refuses to run /publish
-# until these conditions are satisfied.
-# ---------------------------------------------------------------------------
 publish_gates:
-  # -- v0.3 workflow gates ---------------------------------------------------
   critique_required:
     enabled: true
     description: |
       /publish refuses to execute until at least one /critique pass has produced
-      a critique_report artifact for the current draft. This prevents publishing
-      work that has not been subjected to structured self-review.
+      a critique_report artifact for the current draft.
     enforcement: block
     bypass: "--no-critique-gate"
     bypass_warning: |
-      Publishing without a critique pass. The output's metadata will record
-      that critique was bypassed. This is appropriate for informal drafts and
-      internal-use documents, but not recommended for external publication.
-    artifact_required: critique.yaml  # produced by /critique mode; lives in .amplifier/sessions/<session>/
-
+      Publishing without a critique pass.
+    artifact_required: critique.yaml
   honest_pivot_acknowledged:
-    enabled: true  # Fires only if /plan produced a pre-registration; skip-safe otherwise.
+    enabled: true
     description: |
-      If /execute produced findings that diverge from the pre-registration,
-      /publish requires the user has acknowledged each divergence via the
-      honest-pivot behavior (either labeled exploratory, amended with
-      timestamp, or disabled with --no-honest-pivot flag).
+      Fires only if /plan produced a pre-registration; skip-safe otherwise.
     enforcement: block
-    bypass: null  # Cannot be bypassed — architectural guarantee
-
-  # -- Domain-specific quality gates ----------------------------------------
+    bypass: null
   quality_gates:
     - name: prisma_checklist
       condition: ≥24/27 PRISMA items addressed (or flagged as N/A)
@@ -131,9 +468,6 @@ publish_gates:
       condition: synthesis method matches scope (narrative vs. meta-analytic)
       on_fail: warn
 
-# ---------------------------------------------------------------------------
-# Persona detection hints
-# ---------------------------------------------------------------------------
 persona_signals:
   persona_a_indicators:
     - user wants to know "what does the research say about X?"

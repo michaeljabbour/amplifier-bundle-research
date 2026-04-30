@@ -184,7 +184,7 @@ stages:
         output: tracking_analysis
 
       - id: write-loop-paper-section
-        agent: research:technical-writer
+        agent: research:research-technical-writer
         prompt: |
           Write the H3-evidence section using the v3 paper's H3 template.
           Required sections:

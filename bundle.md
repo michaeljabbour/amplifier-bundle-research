@@ -1,7 +1,7 @@
 ---
 bundle:
   name: research
-  version: 0.8.2
+  version: 0.8.3
   description: |
     Superpowers for scientific rigor. From sharpened question to venue-ready
     output, with pre-registration discipline and honest-pivot defaults baked
@@ -37,9 +37,9 @@ agents:
     - research:preregistration-reviewer
     - research:statistician
     - research:honest-critic
-    - research:technical-writer
+    - research:research-technical-writer
     - research:figure-designer
-    - research:citation-manager
+    - research:research-citation-manager
     - research:venue-formatter
     - research:research-coordinator
     # v0.8.0 additions (audit closure):

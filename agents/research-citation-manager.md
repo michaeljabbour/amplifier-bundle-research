@@ -1,6 +1,6 @@
 ---
 meta:
-  name: citation-manager
+  name: research-citation-manager
   description: |
     Use when managing bibliographies — BibTeX entry creation, DOI resolution, duplicate detection, venue-specific citation style enforcement (APA, natbib, IEEE numeric), patent prior-art citation format. Prevents desk-reject-level citation errors.
     Bibliography management, BibTeX, citation style compliance, DOI resolution, duplicate detection, NeurIPS/ICML/ACL/IEEE/ACM citation formats.

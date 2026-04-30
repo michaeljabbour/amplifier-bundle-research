@@ -23,7 +23,7 @@ When a recipe declares `judge_cross_vendor_required: true`, the bundle enforces:
 
 1. The judge's `provider_preferences` MUST list at least one vendor family OTHER than the SUT's vendor family.
 2. If the SUT is `claude-*`, the judge cannot be `claude-*`. If the SUT is `gpt-*`, the judge cannot be `gpt-*`. If the SUT is `gemini-*`, the judge cannot be `gemini-*`. Same for any open-weights family (e.g., `llama-*`, `qwen-*`, `gpt-oss-*`).
-3. The judge is selected by `class:` (e.g., `class: reasoning`) and the resolver is constrained to non-overlapping vendor families.
+3. The judge is expressed as a fallback chain of explicit `provider:`/`model:` entries spanning multiple vendor families. The schema does NOT support `class: reasoning` inside `provider_preferences:` (the validator rejects this; v0.8.3 schema-discovery correction); cross-vendor enforcement is via the explicit fallback chain alone.
 4. If no non-overlapping judge is available in the routing matrix, the recipe halts with an explicit error rather than silently falling back to a same-vendor judge.
 
 ## Why this exists

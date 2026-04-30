@@ -1,16 +1,363 @@
 name: policy-brief
-version: 0.1.0
+version: 0.2.0
 description: |
   Evidence-based policy brief for policymakers, regulators, and advocacy organizations.
   Designed to turn a policy position into a defensible evidence brief with systematic
   literature review, counter-argument coverage, and implementation feasibility assessment.
 
-# ---------------------------------------------------------------------------
-# Mode sequence — full six-mode pipeline
-# ---------------------------------------------------------------------------
+  v0.2.0: Added executable `stages:` block. The pre-existing `modes:`, `defaults:`,
+  `behaviors:`, `persona_signals:`, and `publish_gates:` blocks are preserved AS
+  DOCUMENTATION below — they encode the design contracts a session enforces. The
+  engine ignores them; the executable workflow lives in `stages:`.
 
+  NOTE: This is a non-academic persona. Cross-vendor judge enforcement is NOT
+  applied (no rubric-graded benchmarking). Cache-only mode remains available.
+
+# ---------------------------------------------------------------------------
+# Input context (engine-bound)
+# ---------------------------------------------------------------------------
 context:
-  cache_only: false                # v0.8.1: opt-in cache-only mode for committee verification
+  cache_only: false           # v0.8.1: opt-in cache-only mode for committee verification
+  policy_position: ""         # Required: the policy proposal / position to defend
+  jurisdiction: ""            # Optional: federal / state / local / agency
+  affected_groups: ""         # Optional: stakeholder groups affected
+  evidence_sources: ""        # Optional: pre-known evidence sources
+
+# ===========================================================================
+# EXECUTABLE STAGES (engine runs these)
+# ===========================================================================
+stages:
+  # -------------------------------------------------------------------------
+  # Stage 1: QUESTION — decompose policy position into load-bearing claims
+  # -------------------------------------------------------------------------
+  - name: question
+    description: "Decompose the policy position into testable load-bearing claims"
+    steps:
+      - id: sharpen-question
+        agent: research:hypothesis-designer
+        prompt: |
+          Sharpen the policy position into load-bearing claims. Use plain language;
+          do not require methodology jargon.
+
+          **Policy position:** {{policy_position}}
+          **Jurisdiction:** {{jurisdiction}}
+          **Affected groups:** {{affected_groups}}
+
+          Produce:
+          1. The single sentence that answers "What does this policy do?"
+          2. The problem it solves and who has it.
+          3. The 2–4 load-bearing claims this policy depends on (e.g.,
+             "doing X reduces Y", "stakeholders Z bear costs but accept them", ...).
+          4. What success looks like (quantitatively if possible).
+          5. What would actually change the author's mind — disconfirming evidence.
+        output: sharpened_question
+        timeout: 600
+
+  # -------------------------------------------------------------------------
+  # Stage 2: PLAN — lock evidence strategy + stakeholder mapping
+  #          (LOAD-BEARING APPROVAL GATE)
+  # -------------------------------------------------------------------------
+  - name: plan
+    description: "Lock evidence strategy, stakeholder mapping, and counter-argument scope"
+    approval:
+      required: true
+      timeout: 0
+      default: deny
+      prompt: |
+        🔒 **Evidence-Strategy Lock — Approval Required**
+
+        Lock the evidence-gathering strategy BEFORE running searches. Without
+        this lock, motivated reasoning quietly narrows search scope to whatever
+        confirms the policy position.
+
+        **Sharpened claims:**
+        {{sharpened_question}}
+
+        **Methodology plan (evidence strategy + stakeholder mapping):**
+        {{methodology_plan}}
+
+        **Synthesis / GRADE plan:**
+        {{statistical_plan}}
+
+        **Preregistration review (hash):**
+        {{preregistration_hash}}
+
+        Required checks:
+        - [ ] Evidence sources locked (which count, which don't)
+        - [ ] Disconfirming-evidence search planned (not just confirming)
+        - [ ] Stakeholder map covers beneficiaries AND cost-bearers
+        - [ ] Counter-argument scope defined
+        - [ ] SHA256 hash captured
+
+        ✅ Approve to lock and run evidence gathering.
+        ❌ Deny to revise.
+
+    steps:
+      - id: methodology-design
+        agent: research:methodologist
+        prompt: |
+          Design the evidence strategy and stakeholder mapping for the policy brief.
+
+          **Claims:** {{sharpened_question}}
+          **Pre-known evidence sources:** {{evidence_sources}}
+
+          Lock:
+          - Evidence sources that count (peer-reviewed lit, government reports,
+            policy databases, case studies, ...) and which don't (e.g., op-eds).
+          - Search strategy across PubMed, ERIC, policy databases, similar-jurisdiction
+            comparisons.
+          - Disconfirming-evidence search plan (must search for evidence AGAINST
+            the policy position, not just for it).
+          - Stakeholder map: who benefits, who bears costs, who is silent.
+          - Counter-argument scope: which counter-arguments are in-scope, which
+            are explicitly out-of-scope (and why).
+          - Comparative-policy plan (similar jurisdictions to study).
+        output: methodology_plan
+        timeout: 900
+
+      - id: statistical-plan
+        agent: research:statistician
+        prompt: |
+          Define the evidence-grading and synthesis plan.
+
+          **Claims:** {{sharpened_question}}
+          **Methodology:** {{methodology_plan}}
+
+          Lock:
+          - GRADE-style evidence quality scoring (high / moderate / low / very low).
+          - Per-claim minimum evidence strength to recommend.
+          - How counter-arguments are scored for fairness (strawman detection).
+          - Unintended-consequences elicitation: how second-order effects are surfaced.
+          - Synthesis output: how evidence is mapped to recommendations.
+        output: statistical_plan
+        timeout: 600
+        depends_on: [methodology-design]
+
+      - id: preregistration-review
+        agent: research:preregistration-reviewer
+        prompt: |
+          Review the assembled policy-brief plan.
+
+          **Methodology / evidence strategy:** {{methodology_plan}}
+          **Synthesis / GRADE plan:** {{statistical_plan}}
+
+          Tasks:
+          1. Verify the disconfirming-evidence search is real (not token).
+          2. Verify counter-argument scope is broad enough to be defensible.
+          3. Identify motivated-reasoning entry points.
+          4. Compute/simulate SHA256 hash of canonicalized plan.
+          5. Recommend any edits before locking.
+
+          Return the hash and a yes/no on lock-readiness.
+        output: preregistration_hash
+        timeout: 600
+        depends_on: [statistical-plan]
+
+  # -------------------------------------------------------------------------
+  # Stage 3: EXECUTE — systematic evidence gathering
+  # -------------------------------------------------------------------------
+  - name: execute
+    description: "Run evidence search, stakeholder research, comparative-policy analysis"
+    steps:
+      - id: gather-evidence
+        agent: research:statistician
+        prompt: |
+          Execute the locked evidence-gathering plan.
+
+          **Locked plan (hash {{preregistration_hash}}):**
+          - Methodology: {{methodology_plan}}
+          - GRADE / synthesis plan: {{statistical_plan}}
+
+          Tasks:
+          1. Search the locked evidence sources; log syntax + hit counts.
+          2. Run BOTH a confirming-evidence search AND an explicit
+             disconfirming-evidence search.
+          3. Stakeholder research: surface affected groups and their stated positions.
+          4. Comparative-policy analysis: similar jurisdictions, what happened.
+          5. GRADE-score each piece of evidence per the locked plan.
+          6. Map evidence → claims; mark unsupported claims explicitly.
+          7. Identify second-order / unintended consequences from the literature.
+          8. Any deviation from the locked plan is logged as honest-pivot.
+
+          Return: evidence table with GRADE scores, stakeholder map, comparative
+          analysis, unintended-consequences list, deviation log.
+        output: results
+        timeout: 1800
+
+  # -------------------------------------------------------------------------
+  # Stage 4: CRITIQUE — counter-argument fairness + overclaim detection
+  # -------------------------------------------------------------------------
+  - name: critique
+    description: "Honest-critic: evidence quality, claim support, counter-argument fairness"
+    steps:
+      - id: honest-critique
+        agent: research:honest-critic
+        prompt: |
+          Honest-critic review of the policy brief material.
+
+          **Claims:** {{sharpened_question}}
+          **Locked plan:** {{methodology_plan}}
+          **Evidence + stakeholder + comparative output:** {{results}}
+
+          Score (1–5) AND describe weaknesses concretely:
+          1. Evidence quality — GRADE scores honestly applied?
+          2. Claim support — every recommendation tied to ≥1 evidence claim?
+          3. Counter-argument fairness — strawman detection; are objections
+             stated in their strongest form?
+          4. Unintended consequences — addressed for primary recommendation?
+          5. Stakeholder coverage — beneficiaries AND cost-bearers represented?
+          6. Disconfirming-evidence honesty — was the disconfirming search real?
+          7. Overclaim detection — vague or absolute language flagged?
+
+          Be uncharitable. If the evidence base is thin, say so. If a
+          counter-argument is being strawmanned, name the steelman version.
+        output: critique
+        timeout: 1200
+
+  # -------------------------------------------------------------------------
+  # Stage 5: DRAFT — policy-brief structured output
+  # -------------------------------------------------------------------------
+  - name: draft
+    description: "Architect → write → figures → cite → final assembly"
+    steps:
+      - id: paper-architecture
+        agent: research:methodologist
+        prompt: |
+          Plan the policy-brief structure before writing.
+
+          **Claims:** {{sharpened_question}}
+          **Methodology:** {{methodology_plan}}
+          **Evidence:** {{results}}
+          **Critique:** {{critique}}
+
+          Produce:
+          1. Section outline (Executive Summary, Policy Question, Evidence Base,
+             Recommendations, Counter-Arguments Considered, Implementation,
+             Limitations & Caveats).
+          2. Per-section key content map.
+          3. Where each recommendation links to its evidence claim.
+          4. Where the strongest counter-argument is stated and addressed.
+          5. Where unintended consequences are surfaced.
+          6. Reading-level target: policymaker (non-specialist).
+        output: paper_architecture
+        timeout: 600
+
+      - id: write-paper
+        agent: research:research-technical-writer
+        prompt: |
+          Write the policy-brief body following the architecture.
+
+          **Architecture:** {{paper_architecture}}
+          **Evidence:** {{results}}
+          **Critique:** {{critique}}
+
+          Constraints:
+          - Plain language; policymaker reading level.
+          - Each recommendation tied to ≥1 evidence claim with GRADE-style note.
+          - Counter-arguments stated in strongest form, then addressed honestly.
+          - Implementation strategy concrete (who, when, how funded).
+          - Limitations & Caveats substantive — not boilerplate.
+        output: paper_body
+        timeout: 1500
+        depends_on: [paper-architecture]
+
+      - id: design-figures
+        agent: research:figure-designer
+        prompt: |
+          Design figures / tables for the policy brief.
+
+          **Architecture:** {{paper_architecture}}
+          **Evidence:** {{results}}
+
+          Required:
+          - Evidence summary table (claim ↔ evidence ↔ GRADE score).
+          - Stakeholder map (beneficiaries vs. cost-bearers).
+          - Color-blind-safe palette; printable in B&W.
+        output: figures
+        timeout: 1200
+        depends_on: [paper-architecture]
+
+      - id: manage-citations
+        agent: research:research-citation-manager
+        prompt: |
+          Build the references list.
+
+          **Paper body:** {{paper_body}}
+          **Citation style:** Chicago (per defaults).
+
+          Verify every cited source is real and reachable. Flag any
+          unverifiable / hallucinated citations. Verify government / policy
+          documents have correct identifiers (bill numbers, regulation IDs).
+        output: citations
+        timeout: 600
+        depends_on: [write-paper]
+
+      - id: assemble-draft
+        agent: research:research-technical-writer
+        prompt: |
+          Assemble the final policy-brief draft package.
+
+          - Paper body: {{paper_body}}
+          - Figures / tables: {{figures}}
+          - Citations: {{citations}}
+
+          Output a single coherent draft ready for /publish.
+        output: draft_complete
+        timeout: 900
+        depends_on: [design-figures, manage-citations]
+
+  # -------------------------------------------------------------------------
+  # Stage 6: PUBLISH — policy-ready output (FINAL APPROVAL GATE)
+  # -------------------------------------------------------------------------
+  - name: publish
+    description: "Policy-ready packaging with final human approval"
+    approval:
+      required: true
+      timeout: 0
+      default: deny
+      prompt: |
+        📤 **Publish Approval — Final Output Gate**
+
+        Final review before producing the policy brief.
+
+        **Draft:** {{draft_complete}}
+
+        Required checks:
+        - [ ] Each recommendation tied to ≥1 evidence claim
+        - [ ] ≥1 counter-argument section completed and judged fair
+        - [ ] Unintended consequences addressed for primary recommendation
+        - [ ] Evidence quality ≥ GRADE C (or limitations flagged)
+        - [ ] Preregistration hash recorded: {{preregistration_hash}}
+
+        ✅ Approve to format for output.
+        ❌ Deny to revise.
+
+    steps:
+      - id: format-for-venue
+        agent: research:venue-formatter
+        prompt: |
+          Format the policy-brief draft as a publication-ready package.
+
+          **Draft:** {{draft_complete}}
+          **Preregistration hash (record in supplement):** {{preregistration_hash}}
+
+          Produce:
+          - policy-brief.pdf and .docx and .html.
+          - evidence-table.xlsx.
+          - preregistration.yaml (the locked plan artifact).
+        output: venue_ready_doc
+        timeout: 900
+
+# Recursion protection
+recursion:
+  max_depth: 2
+  max_total_steps: 50
+
+# ===========================================================================
+# DESIGN-CONTRACT DOCUMENTATION (preserved from v0.1.0; engine ignores these
+# top-level blocks but they encode the per-mode contracts that a /command
+# session enforces. Keep them as the design source-of-truth.)
+# ===========================================================================
 
 modes:
   - id: question
@@ -22,9 +369,9 @@ modes:
   - id: plan
     purpose: Lock the evidence strategy and success criteria
     emphasis:
-      - evidence_strategy  # which sources count, which don't
-      - disconfirming_evidence  # what would actually change the author's mind?
-      - stakeholder_mapping  # who benefits, who bears costs
+      - evidence_strategy
+      - disconfirming_evidence
+      - stakeholder_mapping
   - id: execute
     purpose: Systematic evidence gathering
     tools:
@@ -38,10 +385,10 @@ modes:
   - id: critique
     purpose: Evidence quality stress test and counter-argument fairness
     emphasis:
-      - evidence_quality  # GRADE for policy evidence
-      - claim_support  # are recommendations proportionate to evidence?
-      - counter_arguments  # strawman detection
-      - unintended_consequences  # second-order effects
+      - evidence_quality
+      - claim_support
+      - counter_arguments
+      - unintended_consequences
   - id: draft
     purpose: Policy-brief structured output
     template: templates/policy-brief-skeleton.md
@@ -60,50 +407,33 @@ modes:
       - policy-brief.pdf
       - policy-brief.docx
       - evidence-table.xlsx
-      - preregistration.yaml  # locked plan
+      - preregistration.yaml
 
-# ---------------------------------------------------------------------------
-# Defaults — overridable by user
-# ---------------------------------------------------------------------------
 defaults:
   honest_pivot: true
   exploratory_labeling: true
   preregistration_required: true
   citation_style: chicago
-  audience_level: policymaker  # non-specialist
+  audience_level: policymaker
 
-# ---------------------------------------------------------------------------
-# Publish gates — enforced at /publish entry. Session refuses to run /publish
-# until these conditions are satisfied.
-# ---------------------------------------------------------------------------
 publish_gates:
-  # -- v0.3 workflow gates ---------------------------------------------------
   critique_required:
     enabled: true
     description: |
       /publish refuses to execute until at least one /critique pass has produced
-      a critique_report artifact for the current draft. This prevents publishing
-      work that has not been subjected to structured self-review.
+      a critique_report artifact for the current draft.
     enforcement: block
     bypass: "--no-critique-gate"
     bypass_warning: |
-      Publishing without a critique pass. The output's metadata will record
-      that critique was bypassed. This is appropriate for informal drafts and
-      internal-use documents, but not recommended for external publication.
-    artifact_required: critique.yaml  # produced by /critique mode; lives in .amplifier/sessions/<session>/
-
+      Publishing without a critique pass.
+    artifact_required: critique.yaml
   honest_pivot_acknowledged:
-    enabled: true  # applies if the pre-registered policy evidence search
-                   # produces results that differ from expectations
+    enabled: true
     description: |
-      If /execute produced findings that diverge from the pre-registration,
-      /publish requires the user has acknowledged each divergence via the
-      honest-pivot behavior (either labeled exploratory, amended with
-      timestamp, or disabled with --no-honest-pivot flag).
+      Applies if the pre-registered policy evidence search produces results
+      that differ from expectations.
     enforcement: block
-    bypass: null  # Cannot be bypassed — architectural guarantee
-
-  # -- Domain-specific quality gates ----------------------------------------
+    bypass: null
   quality_gates:
     - name: evidence_quality
       condition: minimum GRADE score of C (not "very low quality")
@@ -118,9 +448,6 @@ publish_gates:
       condition: identified and addressed for at least primary recommendation
       on_fail: warn
 
-# ---------------------------------------------------------------------------
-# Persona detection hints
-# ---------------------------------------------------------------------------
 persona_signals:
   persona_a_indicators:
     - user has a policy position to defend

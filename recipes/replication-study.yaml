@@ -1,17 +1,375 @@
 name: replication-study
-version: 0.1.0
+version: 0.2.0
 description: |
   Replication and reproducibility study. Designed for researchers reproducing
-  prior work. Starts at /plan (question comes from source paper). Includes
-  honest-pivot checks against the original study's claims.
+  prior work. SKIPS /question — the question comes from the source paper.
+  Honest-pivot mode is "original": deviations are measured against the original
+  study's claims and methodology, NOT a fresh pre-registration. Strict.
+
+  v0.2.0: Added executable `stages:` block. The pre-existing `modes:`, `defaults:`,
+  `behaviors:`, `persona_signals:`, `publish_gates:`, `special_behavior:`, and
+  `honest_pivot_mode:` blocks are preserved AS DOCUMENTATION below — they encode
+  the design contracts a session enforces. The engine ignores them; the executable
+  workflow lives in `stages:`.
 
 # ---------------------------------------------------------------------------
-# Mode sequence — reduced pipeline (no /question — uses source paper)
+# Input context (engine-bound)
 # ---------------------------------------------------------------------------
-
 context:
-  cache_only: false                # v0.8.1: opt-in cache-only mode for committee verification
-  judge_cross_vendor_required: true # v0.8.1: enforce cross-vendor LLM judge per behaviors/cross-vendor-judge.md
+  cache_only: false                  # v0.8.1: opt-in cache-only mode for committee verification
+  judge_cross_vendor_required: true  # v0.8.1: enforce cross-vendor LLM judge per behaviors/cross-vendor-judge.md
+  source_paper: ""                   # Required: source paper (URL / DOI / pasted text)
+  replication_data: ""               # Optional: replication dataset / collection plan
+  success_criteria: "direction_match" # Options: exact_match | direction_match | ci_overlap
+
+# ===========================================================================
+# EXECUTABLE STAGES (engine runs these — note: NO /question stage; the question
+# comes from the source paper)
+# ===========================================================================
+stages:
+  # -------------------------------------------------------------------------
+  # Stage 1: PLAN — extract original methodology + design replication protocol
+  #          (LOAD-BEARING APPROVAL GATE)
+  # -------------------------------------------------------------------------
+  - name: plan
+    description: "Extract original methodology + lock replication protocol"
+    approval:
+      required: true
+      timeout: 0
+      default: deny
+      prompt: |
+        🔒 **Replication Protocol Lock — Approval Required**
+
+        Lock the replication protocol BEFORE collecting data. Honest-pivot mode
+        is "original" (strict): every deviation from the original methodology
+        must be explicitly justified before lock.
+
+        **Source paper extracted claims / methodology:**
+        {{methodology_plan}}
+
+        **Replication statistical plan (with success criterion):**
+        {{statistical_plan}}
+
+        **Preregistration review (hash + signoff):**
+        {{preregistration_hash}}
+
+        **Replication success criterion:** {{success_criteria}}
+
+        Required checks:
+        - [ ] Original methodology fully extracted
+        - [ ] Every deviation from original explicitly justified
+        - [ ] Replication success criterion locked
+        - [ ] Power adequate to detect original effect size
+        - [ ] SHA256 hash captured
+
+        ✅ Approve to lock and run replication.
+        ❌ Deny to revise.
+
+    steps:
+      - id: extract-original
+        agent: research:methodologist
+        prompt: |
+          Extract the original study's methodology, claims, and analysis plan
+          from the source paper. This is the comparison target — replication
+          honest-pivot mode is "original", which means every deviation will be
+          measured against THIS extracted methodology, not a fresh preregistration.
+
+          **Source paper:**
+          {{source_paper}}
+
+          Produce a structured extraction:
+          1. Original claims (with effect sizes / CIs as reported).
+          2. Original methodology (design, population, IV/DV, controls).
+          3. Original analysis plan (tests, corrections, exclusions).
+          4. Original sample size and power.
+          5. Known limitations the authors acknowledged.
+          6. Ambiguities in the original write-up that require interpretation.
+        output: methodology_plan
+        timeout: 1200
+
+      - id: statistical-plan
+        agent: research:statistician
+        prompt: |
+          Define the replication statistical plan.
+
+          **Original methodology / claims:** {{methodology_plan}}
+          **Replication data plan:** {{replication_data}}
+          **Replication success criterion:** {{success_criteria}}
+
+          Lock:
+          - Replication target effect size and direction.
+          - Statistical test that mirrors the original (or justify departure).
+          - Power analysis: target ≥80% power to detect original effect.
+          - Success criterion operationalization:
+            * exact_match — point estimate within X% of original
+            * direction_match — same sign and statistical significance
+            * ci_overlap — replication CI overlaps original CI
+          - Pre-registered extensions (if any) clearly labeled as such.
+          - What counts as a deviation that triggers honest-pivot vs. original.
+        output: statistical_plan
+        timeout: 900
+        depends_on: [extract-original]
+
+      - id: preregistration-review
+        agent: research:preregistration-reviewer
+        prompt: |
+          Review the assembled replication pre-registration.
+
+          **Extracted original methodology:** {{methodology_plan}}
+          **Replication statistical plan:** {{statistical_plan}}
+
+          Tasks:
+          1. Verify the replication plan matches the original where it should
+             match, and explicitly justifies every deviation.
+          2. Flag ambiguity that would let the replication "drift" toward
+             confirming-or-denying the original post-hoc.
+          3. Compute/simulate SHA256 hash of the canonicalized preregistration.
+          4. Recommend any edits before locking.
+
+          Return the hash and a yes/no on lock-readiness.
+        output: preregistration_hash
+        timeout: 600
+        depends_on: [statistical-plan]
+
+  # -------------------------------------------------------------------------
+  # Stage 2: EXECUTE — run replication, log every deviation against original
+  # -------------------------------------------------------------------------
+  - name: execute
+    description: "Run replication with original methodology + log deviations"
+    steps:
+      - id: run-replication
+        agent: research:statistician
+        prompt: |
+          Execute the locked replication plan.
+
+          **Locked plan (hash {{preregistration_hash}}):**
+          - Original methodology: {{methodology_plan}}
+          - Statistical plan: {{statistical_plan}}
+
+          **Replication data:** {{replication_data}}
+          **Success criterion:** {{success_criteria}}
+
+          Tasks:
+          1. Run the replication using the original methodology where possible.
+          2. Any deviation from the original (data preprocessing, exclusions,
+             test choice) is logged as an honest-pivot vs. original.
+          3. Apply the locked success criterion to the result.
+          4. Produce side-by-side comparison: original effect vs. replication effect.
+          5. Pre-registered extensions, if any, labeled clearly.
+          6. Anything else is "exploratory".
+
+          Return: results, deviation log, side-by-side comparison table.
+        output: results
+        timeout: 1800
+
+  # -------------------------------------------------------------------------
+  # Stage 3: CRITIQUE — replication success assessment + cross-vendor judge
+  # -------------------------------------------------------------------------
+  - name: critique
+    description: "Honest-critic replication assessment with cross-vendor judge"
+    approval:
+      required: true
+      timeout: 0
+      default: deny
+      prompt: |
+        🔍 **Critique Approval — Pre-Rebuttal Review**
+
+        Review the honest-critic's replication assessment. Cross-vendor judge
+        enforcement is active.
+
+        **Critique:**
+        {{critique}}
+
+        Required checks:
+        - [ ] Result comparison done quantitatively (not narrative)
+        - [ ] Replication success / failure stated honestly (no softening of nulls)
+        - [ ] Every deviation from original methodology documented
+        - [ ] Honest-pivot vs. original applied (not vs. fresh preregistration)
+        - [ ] Cross-vendor judge actually crossed vendors
+
+        ✅ Approve to incorporate critique into draft.
+        ❌ Deny to re-run.
+
+    steps:
+      - id: honest-critique
+        agent: research:honest-critic
+        # Cross-vendor judge enforcement (v0.8.1; judge_cross_vendor_required: true).
+        # Replication is especially vulnerable to single-vendor confirmation bias —
+        # if the original was Anthropic-evaluated, force OpenAI cross-check first.
+        provider_preferences:
+          - provider: openai
+            model: gpt-*
+          - provider: anthropic
+            model: claude-opus-*
+          - provider: anthropic
+            model: claude-sonnet-*
+        prompt: |
+          Honest-critic review of the replication study.
+
+          **Original methodology / claims:** {{methodology_plan}}
+          **Replication statistical plan:** {{statistical_plan}}
+          **Preregistration hash:** {{preregistration_hash}}
+          **Replication results & deviation log:** {{results}}
+          **Success criterion:** {{success_criteria}}
+
+          Score (1–5) AND describe weaknesses concretely:
+          1. Result comparison — quantitative side-by-side, original vs. replication?
+          2. Replication success criteria applied honestly (no softening of nulls)?
+          3. Deviation documentation — every change from original explained?
+          4. Honest-pivot vs. original — applied strictly?
+          5. Power adequacy — was the replication actually able to detect the
+             original effect size?
+          6. Generalization — are conclusions about "the original replicates"
+             properly bounded to your sample / context?
+
+          Be uncharitable. If the replication is underpowered, say so. If you
+          claim it "replicates" without CI overlap, that's a failure mode.
+        output: critique
+        timeout: 1200
+
+  # -------------------------------------------------------------------------
+  # Stage 4: DRAFT — replication report (architect → write → figures → cite)
+  # -------------------------------------------------------------------------
+  - name: draft
+    description: "Architect → write → figures → cite → final assembly"
+    steps:
+      - id: paper-architecture
+        agent: research:research-paper-architect
+        prompt: |
+          Plan the replication report structure before writing.
+
+          **Original methodology / claims:** {{methodology_plan}}
+          **Replication results:** {{results}}
+          **Critique:** {{critique}}
+
+          Produce:
+          1. Section outline (Abstract, Original-study summary, Replication
+             protocol, Differences from original, Results comparison table,
+             Analysis, Discussion, Implications for original claim).
+          2. Side-by-side comparison table layout.
+          3. Where each deviation from the original is flagged in-text.
+          4. How replication success / failure is communicated honestly
+             (no softening, no overclaim if it did replicate).
+          5. Figure plan focused on original-vs-replication contrast.
+        output: paper_architecture
+        timeout: 600
+
+      - id: write-paper
+        agent: research:research-technical-writer
+        prompt: |
+          Write the replication report following the architecture.
+
+          **Architecture:** {{paper_architecture}}
+          **Results:** {{results}}
+          **Critique:** {{critique}}
+
+          Constraints:
+          - Replication success / failure stated honestly per the locked criterion.
+          - Every deviation from original called out in "Differences from original".
+          - No softening of null results. No overclaim if it replicated.
+          - Implications-for-original-claim section is required.
+        output: paper_body
+        timeout: 1500
+        depends_on: [paper-architecture]
+
+      - id: design-figures
+        agent: research:figure-designer
+        prompt: |
+          Design figures for the replication report.
+
+          **Architecture:** {{paper_architecture}}
+          **Results:** {{results}}
+
+          Primary figure: original effect vs. replication effect with CIs,
+          forest-plot style. Standalone caption with sample sizes for both.
+          Color-blind-safe palette.
+        output: figures
+        timeout: 1200
+        depends_on: [paper-architecture]
+
+      - id: manage-citations
+        agent: research:research-citation-manager
+        prompt: |
+          Build the reference list and verify citations.
+
+          **Paper body:** {{paper_body}}
+          **Citation style:** APA (per defaults).
+
+          Tasks:
+          - Verify the source paper is cited correctly with full bibliographic info.
+          - Verify all in-text cites are real and reachable.
+          - Flag hallucinated citations.
+        output: citations
+        timeout: 600
+        depends_on: [write-paper]
+
+      - id: assemble-draft
+        agent: research:research-technical-writer
+        prompt: |
+          Assemble the final replication-report draft package.
+
+          - Paper body: {{paper_body}}
+          - Figures: {{figures}}
+          - Citations: {{citations}}
+
+          Output a single coherent draft ready for /publish.
+        output: draft_complete
+        timeout: 900
+        depends_on: [design-figures, manage-citations]
+
+  # -------------------------------------------------------------------------
+  # Stage 5: PUBLISH — replication-ready output (FINAL APPROVAL GATE)
+  # -------------------------------------------------------------------------
+  - name: publish
+    description: "Replication-ready packaging with final human approval"
+    approval:
+      required: true
+      timeout: 0
+      default: deny
+      prompt: |
+        📤 **Publish Approval — Final Output Gate**
+
+        Final review before producing the replication report.
+
+        **Draft:** {{draft_complete}}
+
+        Required checks:
+        - [ ] Original methodology documented
+        - [ ] Replication protocol differs from original only where justified
+        - [ ] Results comparison shows original vs. replication side-by-side with CIs
+        - [ ] Replication success / failure stated honestly per success criterion
+        - [ ] Preregistration hash recorded: {{preregistration_hash}}
+        - [ ] Success criterion: {{success_criteria}}
+
+        ✅ Approve to format for output.
+        ❌ Deny to revise.
+
+    steps:
+      - id: format-for-venue
+        agent: research:venue-formatter
+        prompt: |
+          Format the replication draft as a publication-ready report.
+
+          **Draft:** {{draft_complete}}
+          **Preregistration hash (record in supplement):** {{preregistration_hash}}
+
+          Produce:
+          - replication-report.pdf (and .docx where appropriate).
+          - results-comparison.xlsx (original vs. replication).
+          - preregistration.yaml.
+        output: venue_ready_doc
+        timeout: 900
+
+# Recursion protection
+recursion:
+  max_depth: 2
+  max_total_steps: 50
+
+# ===========================================================================
+# DESIGN-CONTRACT DOCUMENTATION (preserved from v0.1.0; engine ignores these
+# top-level blocks but they encode the per-mode contracts that a /command
+# session enforces. Keep them as the design source-of-truth.)
+# ===========================================================================
 
 modes:
   - id: plan
@@ -38,10 +396,10 @@ modes:
   - id: critique
     purpose: Compare results to original, assess replication success
     emphasis:
-      - result_comparison  # do results match original quantitatively?
-      - replication_success_criteria  # statistical power, confidence intervals
-      - deviation_documentation  # what differed from original design and why?
-      - honest_pivot_vs_original  # does analysis diverge from original's claims?
+      - result_comparison
+      - replication_success_criteria
+      - deviation_documentation
+      - honest_pivot_vs_original
   - id: draft
     purpose: Replication report with side-by-side comparison
     template: templates/replication-skeleton.md
@@ -62,55 +420,37 @@ modes:
       - results-comparison.xlsx
       - preregistration.yaml
 
-# ---------------------------------------------------------------------------
-# Defaults — overridable by user
-# ---------------------------------------------------------------------------
 defaults:
   honest_pivot: true
   exploratory_labeling: true
   preregistration_required: true
   citation_style: apa
 
-# ---------------------------------------------------------------------------
-# Special behavior: honest-pivot vs. original
-# ---------------------------------------------------------------------------
 honest_pivot_mode: original
 special_behavior:
-  - comparison_target: original_study_claims  # not pre-registration, but original paper
+  - comparison_target: original_study_claims
   - flag_on: deviation from original methodology OR contradiction of original results
   - replication_success_definition: configurable by user (exact match vs. direction match vs. CI overlap)
 
-# ---------------------------------------------------------------------------
-# Publish gates — enforced at /publish entry. Session refuses to run /publish
-# until these conditions are satisfied.
-# ---------------------------------------------------------------------------
 publish_gates:
-  # -- v0.3 workflow gates ---------------------------------------------------
   critique_required:
     enabled: true
     description: |
       /publish refuses to execute until at least one /critique pass has produced
-      a critique_report artifact for the current draft. This prevents publishing
-      work that has not been subjected to structured self-review.
+      a critique_report artifact for the current draft.
     enforcement: block
     bypass: "--no-critique-gate"
     bypass_warning: |
       Publishing without a critique pass. The output's metadata will record
-      that critique was bypassed. This is appropriate for informal drafts and
-      internal-use documents, but not recommended for external publication.
-    artifact_required: critique.yaml  # produced by /critique mode; lives in .amplifier/sessions/<session>/
-
+      that critique was bypassed.
+    artifact_required: critique.yaml
   honest_pivot_acknowledged:
     enabled: true
     description: |
-      If /execute produced findings that diverge from the pre-registration,
-      /publish requires the user has acknowledged each divergence via the
-      honest-pivot behavior (either labeled exploratory, amended with
-      timestamp, or disabled with --no-honest-pivot flag).
+      Replication mode: deviations are measured against the original study,
+      not a fresh preregistration. Every deviation must be acknowledged.
     enforcement: block
-    bypass: null  # Cannot be bypassed — architectural guarantee
-
-  # -- Domain-specific quality gates ----------------------------------------
+    bypass: null
   quality_gates:
     - name: original_method_documented
       condition: original methodology extracted and clearly stated
@@ -125,9 +465,6 @@ publish_gates:
       condition: replication success assessed honestly (no softening of null results)
       on_fail: block
 
-# ---------------------------------------------------------------------------
-# Persona detection hints
-# ---------------------------------------------------------------------------
 persona_signals:
   persona_b_indicators:
     - user provides source paper URL or PDF
