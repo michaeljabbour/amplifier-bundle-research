@@ -1,0 +1,108 @@
+# autonomous-experiment-loop.yaml — stand-alone sibling of orchestrated-loop.yaml
+#
+# Autonomous experiment search loop. Runs the autonomous-experiment-iteration
+# sub-recipe in a while loop until convergence or max_iterations is reached.
+#
+# Canonical reference: orchestrated-loop.yaml (phase2-loop stage, lines 120-141)
+# This recipe mirrors that while-step shape exactly.
+#
+# Companion sub-recipes (must be in the same recipes directory):
+#   - autonomous-experiment-iteration.yaml  (the iteration body)
+#   - autonomous-experiment-promotion-gate.yaml (Phase 3 — promotion gate)
+
+name: autonomous-experiment-loop
+version: 0.1.0
+description: |
+  Stand-alone sibling of orchestrated-loop.yaml for autonomous experiment search.
+  Runs the autonomous-experiment-iteration sub-recipe in a while loop until
+  convergence or max_iterations is reached, preceded by a provenance hard-gate
+  and followed by a promotion gate.
+
+  Companion sub-recipes (must be in the same recipes directory):
+    - autonomous-experiment-iteration.yaml (the iteration body)
+    - autonomous-experiment-promotion-gate.yaml (the promotion gate — Phase 3)
+
+context:
+  prereg_path: ""
+  ledger_path: "experiments/study/ledger.yaml"
+  intervention_surface_file: ""
+  run_command: ""
+  experiment_script: ""
+  seeds: "0 1 2"
+  max_iterations: 10
+  scripts_dir: "scripts/experiment-loop"
+
+  # Loop state (mutated via update_context: in the while step)
+  # Boolean context = strings convention
+  should_stop: "false"
+  iteration_index: 0
+
+stages:
+
+  - name: provenance-pre-gate
+    approval:
+      required: true
+      timeout: 0
+      default: deny
+      prompt: |
+        Launch-gate for autonomous-experiment-loop
+
+        You are about to start an autonomous experiment loop (max {{max_iterations}}
+        iterations). Once approved, the pre-registration document, ledger schema,
+        and intervention surface constraints are locked for this run.
+
+        experiment_script: {{experiment_script}}
+        ledger_path:       {{ledger_path}}
+        run_command:       {{run_command}}
+
+        If experiment_script is set, the provenance hard-gate will run before
+        any iterations begin. If not set, the check is skipped.
+
+        Approve to lock and begin / Deny to revise
+
+    steps:
+      - id: data-provenance-hard-gate
+        type: bash
+        command: |
+          if [ -n "{{experiment_script}}" ]; then
+            amplifier tool invoke tool-experiment-provenance-check \
+              operation=pre-experiment-gate \
+              script_path="{{experiment_script}}" \
+              repo_path="$(pwd)"
+          else
+            echo "provenance-check: skipped (experiment_script not set)"
+          fi
+
+  - name: experiment-loop
+    steps:
+      - id: run-one-iteration
+        type: recipe
+        recipe: ./autonomous-experiment-iteration.yaml
+        context:
+          prereg_path: "{{prereg_path}}"
+          ledger_path: "{{ledger_path}}"
+          intervention_surface_file: "{{intervention_surface_file}}"
+          run_command: "{{run_command}}"
+          seeds: "{{seeds}}"
+          iteration_index: "{{iteration_index}}"
+          scripts_dir: "{{scripts_dir}}"
+        output: iteration_result
+        parse_json: true
+        while_condition: "{{should_stop}} != 'true'"
+        max_while_iterations: 10
+        break_when: "{{should_stop}} == 'true'"
+        update_context:
+          should_stop: "{{iteration_result.iteration_summary.should_stop}}"
+
+  - name: promotion-gate
+    steps:
+      - id: run-promotion-gate
+        type: recipe
+        recipe: ./autonomous-experiment-promotion-gate.yaml
+        context:
+          prereg_path: "{{prereg_path}}"
+          ledger_path: "{{ledger_path}}"
+          run_command: "{{run_command}}"
+          scripts_dir: "{{scripts_dir}}"
+        output: promotion_result
+        parse_json: true
