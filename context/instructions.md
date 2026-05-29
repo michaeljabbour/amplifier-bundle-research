@@ -69,6 +69,7 @@ This bundle provides **11 specialized agents**. Modes invoke them automatically 
 **When invoked:** `/execute` when the locked plan declares an `experiment_loop` (autonomous experiment loop)
 **What it does:** the scientist-in-the-loop — proposes the next intervention as a mini-hypothesis (rationale + directional prediction) inside the frozen intervention surface, then applies the pre-registered keep/revert rule after analysis
 **Wraps:** No K-Dense skill — uses skills/conducting-autonomous-experiments; reuses statistician, tool-experiment-audit/power, honest-critic
+**See also:** `context/autonomous-loop-awareness.md` (when to reach for the loop + its honest limits)
 
 ---
 
