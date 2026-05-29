@@ -1,0 +1,195 @@
+name: autonomous-experiment-promotion-gate
+version: 0.1.0
+description: |
+  Phase 3 promotion gate for the autonomous-experiment-loop. Evaluates
+  KEPT exploratory candidates from the ledger for confirmatory promotion
+  using held-out seeds, Benjamini-Hochberg multiple-testing correction,
+  and a cross-vendor multi-LLM judge ensemble with meta-reviewer.
+
+  Promotion is append-only: confirmed candidates are written to the ledger
+  via promote.sh and never modified once recorded.
+
+  Steps:
+    1. select-kept-candidates    — read ledger, select KEPT exploratory candidates
+    2. confirmatory-rerun-held-out — re-execute frozen run_command on held-out seeds
+    3. statistical-adjudication  — BH correction across candidates vs pre-reg alpha
+    4. cross-vendor-judge-panel  — multi-LLM ensemble + meta-reviewer (cross-vendor)
+    5. compose-confirmation-blocks — build append-only confirmation records
+    6. apply-promotion           — write to ledger via promote.sh (conditional)
+    7. honest-pivot-review       — honest null-result acknowledgement if nothing confirms
+
+  Outputs promotion_result: {confirmed_iterations, null_result, rationale}
+
+context:
+  prereg_path: ""
+  ledger_path: "experiments/study/ledger.yaml"
+  run_command: ""
+  scripts_dir: "scripts/experiment-loop"
+  held_out_seeds: "100 101 102"
+  alpha: 0.05
+  sut_vendor: ""
+
+steps:
+
+  - id: select-kept-candidates
+    agent: research:experiment-runner
+    prompt: |
+      Read the experiment ledger at {{ledger_path}} and the pre-registration
+      at {{prereg_path}}.
+
+      Select all iterations that meet ALL of the following conditions:
+        - decision: "keep"
+        - label: "exploratory"
+        - not reverted (no revert entry in the ledger for this iteration)
+
+      These are the KEPT candidates eligible for confirmatory promotion.
+
+      Emit a JSON dict with EXACTLY these keys:
+        - candidates: list of {iteration, commit, intervention}
+        - candidate_count: integer count of candidates
+    output: selection
+    parse_json: true
+
+  - id: confirmatory-rerun-held-out
+    type: bash
+    command: |
+      set -uo pipefail
+      : > .promotion_confirm_metrics.txt
+      for seed in {{held_out_seeds}}; do
+        SEED="$seed" {{run_command}} | tee -a .promotion_confirm_metrics.txt || echo "RUN_FAILED seed=$seed"
+      done
+      echo "held-out rerun: done"
+
+  - id: statistical-adjudication
+    agent: research:statistician
+    prompt: |
+      Parse .promotion_confirm_metrics.txt, which contains metric output from
+      confirmatory re-runs on held-out seeds {{held_out_seeds}}.
+
+      For each candidate in {{selection.candidates}}, apply the pre-registered
+      statistical test (use tool-experiment-power for power calculations) against
+      the pre-registered alpha level {{alpha}}.
+
+      Apply Benjamini-Hochberg correction across ALL candidates to control the
+      false discovery rate. Use the BH procedure: sort p-values ascending, compare
+      each p_(k) to (k/m)*alpha where m = total number of candidates.
+
+      Pre-registration file for reference: {{prereg_path}}
+
+      Emit a JSON dict with EXACTLY these keys:
+        - per_candidate: list of {
+            iteration,
+            raw_p,
+            bh_corrected_p,
+            alpha,
+            passes_corrected,
+            guardrails_ok
+          }
+        - n_compared: integer (total number of candidates compared)
+        - correction: "benjamini-hochberg"
+    output: stats_verdict
+    parse_json: true
+
+  - id: cross-vendor-judge-panel
+    agent: research:honest-critic
+    provider_preferences:
+      - { provider: anthropic, model: "claude-opus-4-8" }
+      - { provider: openai,    model: "gpt-5.5" }
+      - { provider: google,    model: "gemini*" }
+    prompt: |
+      Apply the rubric at @research:context/orchestrated-loop-judge-rubric.md
+      to evaluate each candidate's confirmatory evidence.
+
+      Cross-vendor enforcement: @research:behaviors/cross-vendor-judge.md
+      Ensemble + meta-reviewer pattern: @research:agents/ml-paper-reviewer.md
+
+      IMPORTANT: Exclude the {{sut_vendor}} vendor family from your judgment
+      to satisfy the cross-vendor reflexivity-hazard mitigation (reflexivity
+      hazard #1 from the v3 paper). If {{sut_vendor}} matches one of the
+      providers in this panel, discard that provider's votes before computing
+      the meta-verdict.
+
+      Candidates under evaluation: {{selection.candidates}}
+      Statistical adjudication results: {{stats_verdict}}
+      Held-out metrics: .promotion_confirm_metrics.txt
+
+      For each candidate, run the rubric as an ensemble (minimum 3 judges from
+      different vendor families). Record Cohen's kappa across judges to measure
+      inter-rater agreement. kappa_below_threshold is "true" when kappa < 0.60.
+
+      Emit a JSON dict with EXACTLY these keys:
+        - per_candidate: list of {
+            iteration,
+            per_judge: list of {model, verdict},
+            meta_verdict,
+            kappa,
+            kappa_below_threshold
+          }
+        - meta_reviewer: string summary of ensemble reasoning
+    output: judge_verdict
+    parse_json: true
+
+  - id: compose-confirmation-blocks
+    agent: research:research-coordinator
+    prompt: |
+      A candidate is CONFIRMED iff ALL of the following hold:
+        1. passes_corrected == true  (from stats_verdict.per_candidate)
+        2. guardrails_ok == true     (from stats_verdict.per_candidate)
+        3. meta_verdict == "promote" (from judge_verdict.per_candidate)
+        4. kappa_below_threshold == false (from judge_verdict.per_candidate)
+
+      Evaluate each candidate in {{selection.candidates}} against these criteria
+      using {{stats_verdict}} and {{judge_verdict}}.
+
+      For each confirmed candidate, build an append-only confirmation record
+      matching the templates/experiment-ledger.yaml schema. The record must be
+      YAML and include: iteration, commit, intervention, promotion_timestamp,
+      bh_corrected_p, meta_verdict, kappa, confirmed_by: "promotion-gate-v0.1.0".
+
+      Emit a JSON dict with EXACTLY these keys:
+        - confirmed: "true" or "false" (string, not YAML boolean)
+        - confirmation_yaml: string containing the YAML block(s) to append
+        - confirmed_iterations: list of iteration identifiers that are confirmed
+    output: confirmation
+    parse_json: true
+
+  - id: apply-promotion
+    type: bash
+    condition: "{{confirmation.confirmed}} == 'true'"
+    command: |
+      set -uo pipefail
+      BLOCK=$(mktemp)
+      cat > "$BLOCK" << YAML_EOF
+      {{confirmation.confirmation_yaml}}
+      YAML_EOF
+      bash {{scripts_dir}}/promote.sh "{{ledger_path}}" "$BLOCK" "ledger: promote confirmed candidates (held-out + BH + panel)"
+      rm -f "$BLOCK"
+
+  - id: honest-pivot-review
+    agent: research:honest-critic
+    prompt: |
+      Review the promotion-gate outcome. Apply honest-pivot: if no candidates
+      were confirmed, state this plainly as a null result — do not reframe,
+      soften, or omit the null finding.
+
+      Confirmation status: {{confirmation.confirmed}}
+      Confirmed iterations: {{confirmation.confirmed_iterations}}
+      Statistical adjudication: {{stats_verdict}}
+      Judge panel verdict: {{judge_verdict}}
+
+      If {{confirmation.confirmed}} is "false" or confirmed_iterations is empty:
+        - null_result must be "true"
+        - rationale must explain why each candidate failed, naming which gate
+          it failed: BH correction, guardrails, judge panel meta_verdict, or
+          inter-rater kappa below threshold
+
+      If {{confirmation.confirmed}} is "true":
+        - null_result must be "false"
+        - rationale must summarize what was confirmed and the key evidence
+
+      Emit a JSON dict with EXACTLY these keys:
+        - confirmed_iterations: list of confirmed iteration identifiers (empty list if none)
+        - null_result: "true" or "false" (string, not YAML boolean)
+        - rationale: string explanation
+    output: promotion_result
+    parse_json: true
