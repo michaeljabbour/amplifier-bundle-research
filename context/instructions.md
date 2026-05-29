@@ -65,6 +65,11 @@ This bundle provides **10 specialized agents**. Modes invoke them automatically 
 **What it does:** Orchestrates agent routing, enforces honest-pivot, manages state across modes
 **Wraps:** No specific K-Dense skill — coordinates other agents
 
+### experiment-runner
+**When invoked:** `/execute` when the locked plan declares an `experiment_loop` (autonomous experiment loop)
+**What it does:** the scientist-in-the-loop — proposes the next intervention as a mini-hypothesis (rationale + directional prediction) inside the frozen intervention surface, then applies the pre-registered keep/revert rule after analysis
+**Wraps:** No K-Dense skill — uses skills/conducting-autonomous-experiments; reuses statistician, tool-experiment-audit/power, honest-critic
+
 ---
 
 ## Workflow Patterns
@@ -165,6 +170,7 @@ Recipes are end-to-end workflows that chain modes together with recipe-specific 
 | `replication-study.yaml` | Replication study (skips `/question`) |
 | `benchmark-paper.yaml` | ML/AI benchmark paper with reproducibility appendix |
 | `paperbanana-figure.yaml` | Multi-stage figure generation with approval gates |
+| `autonomous-experiment-loop.yaml` | Autonomous experiment loop (propose → collect → analyze → decide → log) against a frozen apparatus, terminating in a held-out promotion gate. Reached via /execute when the locked plan declares an experiment_loop. Stand-alone sibling of orchestrated-loop.yaml. |
 
 ---
 
@@ -202,6 +208,8 @@ Operational defaults agents assume unless the user or recipe overrides them. Ove
 | `multiple_comparison_correction` | `benjamini-hochberg` | Default correction when multiple tests are reported |
 | `citation_style` | `auto` | Derived from `target_venue` |
 | `figure_style` | `publication` | Wraps `scientific-schematics` defaults; PaperBanana veto rules still apply |
+| `judge_panel` | cross-vendor, 2–3 models + meta-reviewer | judgment-based metrics and promotion-gate verdict use a cross-vendor multi-LLM judge panel e.g. anthropic/claude-opus-4-8 + openai/gpt-5.5, never a single model; pinned in the locked plan's measurement_protocol.judge_panel; enforced via behaviors/cross-vendor-judge.md |
+| `judge_kappa_threshold` | `0.6` | inter-judge Cohen's κ floor; below it tool-experiment-audit flags the metric SUSPICIOUS; hash-locked per study in measurement_protocol.judge_panel.kappa_threshold |
 
 ---
 
