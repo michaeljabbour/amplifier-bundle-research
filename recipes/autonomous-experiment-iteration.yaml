@@ -1,0 +1,182 @@
+name: autonomous-experiment-iteration
+version: 0.1.0
+description: |
+  Single iteration of the autonomous-experiment-loop. Spawned by the parent
+  loop's while step in an isolated sub-session. Receives only the inputs
+  explicitly listed in `context:`; does NOT inherit parent loop state.
+
+  Steps:
+    1. propose-intervention     — read prereg + ledger, propose next intervention,
+                                  edit only surface files, commit
+    2. freeze-gate              — assert that only surface files changed (HEAD~1..HEAD)
+    3. collect-across-seeds     — run the experiment across all seeds, collect metrics
+    4. analyze-variance         — parse metrics, compute mean + SD per metric
+    5. audit-integrity          — invoke the experiment-audit tool, get verdict
+    6. decide-keep-or-revert    — apply keep/revert rule; emit DECIDE JSON
+    7. apply-decision           — call decide.sh to keep or revert git state
+    8. write-ledger-row         — append a structured row to the experiment ledger
+    9. emit-iteration-summary   — emit the summary the parent loop reads
+
+  Output: a single JSON dict (parsed by the parent's `update_context:`) that
+  reports all values the parent loop needs to update its state and decide
+  whether to stop.
+
+context:
+  prereg_path: ""
+  ledger_path: ""
+  intervention_surface_file: ""
+  run_command: ""
+  seeds: "0 1 2"
+  iteration_index: 0
+  scripts_dir: "scripts/experiment-loop"
+
+steps:
+
+  - id: propose-intervention
+    agent: research:experiment-runner
+    prompt: |
+      Read the pre-registration document at {{prereg_path}} and the experiment
+      ledger at {{ledger_path}} to understand what has already been tried and
+      what was pre-registered.
+
+      Propose the NEXT intervention to evaluate. You MUST:
+        - Edit ONLY the surface files listed in {{intervention_surface_file}}
+        - Leave all frozen apparatus files completely untouched
+        - Commit the changes with a clear, descriptive commit message
+
+      After committing, emit a JSON dict with EXACTLY these keys:
+        - intervention (string): short name for this intervention
+        - rationale (string): why this intervention is worth trying next
+        - prediction (string): expected direction and magnitude of effect on
+          the primary metric
+        - files_changed (list of strings): surface files modified
+
+      End your response with PROPOSE: followed by the JSON object on one line.
+    output: proposal
+    parse_json: true
+
+  - id: freeze-gate
+    type: bash
+    command: |
+      bash {{scripts_dir}}/freeze_gate.sh "{{intervention_surface_file}}" "HEAD~1 HEAD"
+
+  - id: collect-across-seeds
+    type: bash
+    command: |
+      set -uo pipefail
+      > .loop_run_metrics.txt
+      for seed in {{seeds}}; do
+        SEED="$seed" {{run_command}} | tee -a .loop_run_metrics.txt || echo "RUN_FAILED seed=$seed"
+      done
+      echo "collect: done"
+
+  - id: analyze-variance
+    agent: research:statistician
+    prompt: |
+      Parse .loop_run_metrics.txt, which contains metric output from multiple
+      seeded runs of the experiment (one run per seed). Extract per-seed values
+      for the primary metric and all guardrail metrics.
+
+      Compute mean and standard deviation (SD) for each metric. SD is only
+      meaningful when n > 1; report null for n = 1.
+
+      Emit a JSON dict with EXACTLY these keys:
+        - primary: {
+            "name": <string>,
+            "values": [<float>, ...],
+            "mean": <float>,
+            "sd": <float or null>
+          }
+        - guardrails: [
+            {
+              "name": <string>,
+              "mean": <float>,
+              "tolerance": <float>,
+              "regressed": <bool>
+            },
+            ...
+          ]
+    output: analysis
+    parse_json: true
+
+  - id: audit-integrity
+    type: bash
+    command: |
+      amplifier tool invoke tool-experiment-audit operation=audit \
+        path="$(dirname "{{ledger_path}}")" \
+        || echo '{"audit_verdict": "ERROR"}'
+    output: audit_result
+    parse_json: true
+
+  - id: decide-keep-or-revert
+    agent: research:experiment-runner
+    prompt: |
+      Apply the keep/revert rule to decide whether to keep this intervention
+      or revert the working tree to the pre-intervention state.
+
+      Inputs available to you:
+        Proposal:      {{proposal}}
+        Analysis:      {{analysis}}
+        Audit verdict: {{audit_result}}
+
+      Keep the intervention ONLY when ALL of the following hold:
+        1. The primary metric improved (or held within tolerance)
+        2. No guardrail metric regressed beyond its tolerance
+        3. The audit_verdict is not "FAIL" or "ERROR"
+
+      Revert otherwise.
+
+      Emit a JSON dict with EXACTLY these keys:
+        - decision (string): "keep" or "revert"
+        - decision_reason (string): one-sentence explanation
+        - kept_improvement (float or null): primary metric delta if kept,
+          null if reverted
+
+      End your response with DECIDE: followed by the JSON object on one line.
+    output: decision
+    parse_json: true
+
+  - id: apply-decision
+    type: bash
+    command: |
+      bash {{scripts_dir}}/decide.sh "{{decision.decision}}"
+
+  - id: write-ledger-row
+    type: bash
+    command: |
+      ROW=$(mktemp)
+      cat > "$ROW" <<EOF
+      {
+        "iteration": {{iteration_index}},
+        "intervention": "{{proposal.intervention}}",
+        "rationale": "{{proposal.rationale}}",
+        "prediction": "{{proposal.prediction}}",
+        "decision": "{{decision.decision}}",
+        "decision_reason": "{{decision.decision_reason}}",
+        "label": "exploratory",
+        "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      }
+      EOF
+      bash {{scripts_dir}}/ledger_append.sh "{{ledger_path}}" "$ROW" "ledger: iteration {{iteration_index}}"
+      rm "$ROW"
+
+  - id: emit-iteration-summary
+    agent: research:research-coordinator
+    prompt: |
+      Summarize this completed iteration of the autonomous experiment loop so
+      the parent loop can update its state and decide whether to continue.
+
+      Decision made:   {{decision}}
+      Variance report: {{analysis}}
+
+      Emit a JSON dict with EXACTLY these keys (no extra keys):
+        - decision (string): the decision that was applied ("keep" or "revert")
+        - kept_improvement (float or null): primary metric improvement if kept,
+          null if reverted
+        - best_primary_so_far (float or null): best primary metric mean seen
+          across all iterations, including this one
+        - should_stop (string): "true" if the loop should terminate after this
+          iteration (e.g. convergence reached, diminishing returns, or budget
+          exhausted), "false" otherwise
+    output: iteration_summary
+    parse_json: true
