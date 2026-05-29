@@ -38,6 +38,37 @@ mode:
 
 **Exit condition:** analysis complete, results summary produced, any deviations flagged and logged.
 
+## Dispatch contract — autonomous experiment loop
+
+`/execute` inspects the locked pre-registration for an `experiment_loop` block (see `templates/preregistration.yaml`).
+
+**`experiment_loop` ABSENT (default path)**
+`/execute` behaves exactly as today: single-pass execution producing `execution-log.yaml` / `evidence-log.yaml`. Observable output is unchanged — this is the backward-compatible path.
+
+**`experiment_loop` PRESENT (autonomous loop path)**
+`/execute` invokes `recipes/autonomous-experiment-loop.yaml`, passing:
+
+| Parameter | Source |
+|-----------|--------|
+| `prereg_path` | path to the locked pre-registration |
+| `intervention_surface_file` | derived from `experiment_loop.intervention_surface` |
+| `run_command` | `experiment_loop.measurement_protocol.run_command` |
+| `seeds` | `experiment_loop.seeds` |
+| `ledger_path` | path for the append-only ledger |
+| `max_iterations` | `experiment_loop.stopping_rule.max_iterations` |
+
+The loop produces an append-only `ledger.yaml` instead of a single-pass log and terminates in the promotion gate.
+
+> **Important:** `max_iterations: 1` is a *degenerate single-iteration loop* — it still runs the loop code path and emits `ledger.yaml`. It is **not** the legacy single-pass path.
+
+**Invariants**
+
+- No new mode is added; the loop is reached purely through dispatch.
+- The apparatus is frozen in the hash-locked plan; `/execute` never edits it.
+- The loop may only mutate files inside `intervention_surface`; this is enforced by `scripts/experiment-loop/freeze_gate.sh`.
+
+See also: `context/autonomous-loop-awareness.md` and `skills/conducting-autonomous-experiments/SKILL.md`.
+
 ## Reproducibility requirements
 
 Every `/execute` run MUST produce a structured log that the `/critique` and `/draft` modes can later hash-link against. Which log depends on the recipe:
