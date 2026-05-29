@@ -108,6 +108,54 @@ honest_pivot_clause: |
 amendments: []   # appended to via /plan --amend, never edited in place
 
 # --------------------------------------------------------------------------
+# Autonomous experiment loop — FROZEN APPARATUS (hash-locked, never in-loop)
+# --------------------------------------------------------------------------
+# Present ONLY when this study runs the autonomous-experiment-loop.
+# If absent, /execute behaves exactly as today (single-pass).
+# See context/autonomous-loop-awareness.md and
+# skills/conducting-autonomous-experiments/SKILL.md for full protocol.
+#
+# Discipline: intervention_surface and measurement_protocol MUST be disjoint.
+# The loop may edit the surface, never the measurement protocol.
+# Changing any field requires a NEW pre-registration (new hash).
+experiment_loop:
+  intervention_surface:   # files/globs the loop MAY mutate (e.g. src/train.py)
+    - <path or glob, e.g. src/train.py>
+
+  measurement_protocol:   # FROZEN eval (e.g. prepare.py + eval)
+    run_command: <executable command emitting the metric lines>
+    primary_metric_parse: <how the primary scalar is parsed from stdout>
+    judge_panel:           # required only when metric is LLM-judged
+      enabled: false
+      models:              # cross-vendor >=2 families, never single-model
+        - <provider/model, e.g. anthropic/claude-opus-4-8>
+        - <provider/model, e.g. openai/gpt-5.5>
+      meta_reviewer: <provider/model that reconciles the ensemble>
+      kappa_threshold: 0.6  # inter-judge Cohen's kappa floor; below -> SUSPICIOUS
+
+  primary_metric:
+    name: <metric name, e.g. val_bpb>
+    direction: <minimize | maximize>
+    keep_revert_rule: |
+      keep iff the primary improves beyond noise (e.g. > 2x across-seed sd)
+      AND no guardrail regresses past its tolerance, else revert
+
+  guardrail_metrics:
+    - name: <metric name, e.g. peak_vram_mb>
+      tolerance: <e.g. "<= 40000">
+
+  stopping_rule:
+    max_iterations: <int; 1 = degenerate single-iteration loop>
+    patience: <int; stop after N iterations with no kept improvement>
+    budget: <per-run wall-clock / token budget>
+
+  seeds: [0, 1, 2]   # search seeds, n>1 fixes autoresearch's n=1
+
+  held_out_confirmation:   # reserved for the promotion gate; loop never touches
+    seeds: [100, 101, 102]
+    set: <held-out data/config the search never sees>
+
+# --------------------------------------------------------------------------
 # Self-witnessing hash — populated by /plan on exit
 # --------------------------------------------------------------------------
 sha256: <computed at hash-lock time, before /execute begins>
