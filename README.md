@@ -92,6 +92,22 @@ See [`bundles/dev.yaml`](bundles/dev.yaml) and [`docs/HANDOFF.md`](docs/HANDOFF.
 
 Thin wrappers over [K-Dense scientific-agent-skills](https://github.com/K-Dense-AI/scientific-agent-skills), orchestrated with a [Superpowers](https://github.com/microsoft/amplifier-bundle-superpowers)-style mode workflow, informed by [Denario](https://github.com/AstroPilot-AI/Denario)'s multi-agent topology. Full specification in [`docs/SPEC.md`](docs/SPEC.md); credits and lineage in [`docs/LINEAGE.md`](docs/LINEAGE.md).
 
+## v0.9.0 (2026-05-29) — Autonomous experiment loop
+
+Full empirical lifecycle inside a single session: data → analysis → honest conclusion. The loop runs propose → collect → analyze → decide → log against a hash-locked FROZEN apparatus, terminating in a held-out promotion gate confirmatory re-run + Benjamini–Hochberg + cross-vendor multi-LLM judge panel. Output is a defensible FINDING — confirmatory or honest null — not a hill-climb.
+
+**New:**
+- `skills/conducting-autonomous-experiments/SKILL.md` — discipline guide for the loop
+- `recipes/autonomous-experiment-loop.yaml` + iteration body + promotion gate
+- `agents/experiment-runner.md` — execution agent with integrity guardrails
+- `templates/experiment-ledger.yaml` — schema for the hash-sealed ledger
+- `context/autonomous-loop-awareness.md` — loop-state context for agents
+- `scripts/experiment-loop/` — helpers (hash-lock, ledger writer, BH correction)
+
+Reached via `/execute` only when the locked plan declares `experiment_loop`; plans without one behave exactly as before.
+
+**Attribution:** Pattern transfer, idea-level, from [Karpathy autoresearch `program.md`](https://github.com/karpathy/autoresearch) (MIT): propose → run → measure → keep/revert → log against a frozen apparatus with git as ledger. GPU/PyTorch/CUDA training code intentionally NOT imported — only the discipline, hardened with pre-registration hash-lock, n>1 variance, guardrails, integrity audit, held-out promotion gate, and cross-vendor judge panel.
+
 ## License
 
 MIT.
