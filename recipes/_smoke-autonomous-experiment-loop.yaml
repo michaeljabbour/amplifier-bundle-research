@@ -1,0 +1,92 @@
+# Internal smoke-test recipe for the autonomous experiment loop bash mechanics.
+# Drives 3 scripted iterations (keep, revert, keep) through Phase 1 mechanics
+# (freeze_gate → decide → ledger_append) and then the promotion gate (promote.sh).
+# Self-contained: all work happens inside a mktemp -d hermetic git repo.
+#
+# Run via: amplifier tool invoke recipes operation=validate \
+#            recipe_path=recipes/_smoke-autonomous-experiment-loop.yaml
+#
+# The _-prefix marks this as bundle-internal; validate-all-recipes.sh skips it.
+# Validate explicitly. The DETERMINISTIC GATE is the bash test in Task 17.
+
+name: _smoke-autonomous-experiment-loop
+version: 0.1.0
+description: |
+  Internal smoke-test recipe driving 3 scripted iterations through
+  experiment-loop bash mechanics + promotion-gate append. Self-contained:
+  all work happens inside a mktemp -d hermetic git repo. Bundle-internal
+  (underscore prefix); validated explicitly, not part of the deterministic gate.
+
+context:
+  scripts_dir: "scripts/experiment-loop"
+
+steps:
+
+  - id: drive-three-iterations-and-promote
+    type: bash
+    command: |
+      set -uo pipefail
+      SCRIPTS="$(pwd)/{{scripts_dir}}"
+      TMP=$(mktemp -d)
+      trap 'rm -rf "$TMP"' EXIT
+      cd "$TMP"
+      git init -q
+      git config user.email t@t
+      git config user.name t
+      mkdir -p surface experiments
+      echo frozen > eval.txt
+      echo base > surface/train.txt
+      git add -A
+      git commit -qm "baseline"
+      printf 'surface/*\n' > allow.txt
+      LEDGER="experiments/ledger.yaml"
+
+      # --- iteration 1: keep ---
+      echo iter1 >> surface/train.txt
+      git add surface/train.txt
+      git commit -qm "iter1: add line to surface"
+      bash "$SCRIPTS/freeze_gate.sh" allow.txt "HEAD~1 HEAD"
+      cat > r1.txt <<EOF
+      - iteration: 1
+        decision: keep
+        label: exploratory
+      EOF
+      bash "$SCRIPTS/decide.sh" keep
+      bash "$SCRIPTS/ledger_append.sh" "$LEDGER" r1.txt "ledger: iteration 1"
+
+      # --- iteration 2: revert ---
+      echo iter2 >> surface/train.txt
+      git add surface/train.txt
+      git commit -qm "iter2: add line to surface"
+      bash "$SCRIPTS/freeze_gate.sh" allow.txt "HEAD~1 HEAD"
+      cat > r2.txt <<EOF
+      - iteration: 2
+        decision: revert
+        label: exploratory
+      EOF
+      bash "$SCRIPTS/decide.sh" revert
+      bash "$SCRIPTS/ledger_append.sh" "$LEDGER" r2.txt "ledger: iteration 2"
+
+      # --- iteration 3: keep ---
+      echo iter3 >> surface/train.txt
+      git add surface/train.txt
+      git commit -qm "iter3: add line to surface"
+      bash "$SCRIPTS/freeze_gate.sh" allow.txt "HEAD~1 HEAD"
+      cat > r3.txt <<EOF
+      - iteration: 3
+        decision: keep
+        label: exploratory
+      EOF
+      bash "$SCRIPTS/decide.sh" keep
+      bash "$SCRIPTS/ledger_append.sh" "$LEDGER" r3.txt "ledger: iteration 3"
+
+      # --- promotion gate ---
+      cat > conf.txt <<EOF
+      - confirmation: confirms_iteration_3
+        label: confirmatory
+        meta_verdict: promote
+      EOF
+      bash "$SCRIPTS/promote.sh" "$LEDGER" conf.txt
+
+      echo 'smoke: 3 iterations + promotion complete'
+      grep -c '^- iteration:' "$LEDGER"
