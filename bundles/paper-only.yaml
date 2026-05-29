@@ -1,0 +1,26 @@
+---
+bundle:
+  name: research-paper-only
+  version: 0.1.0
+  description: |
+    Lean "just write a paper" entry point — the capabilities formerly shipped
+    as amplifier-bundle-scientificpaper, now a composed variant of
+    amplifier-bundle-research. Provides LaTeX authoring, multi-conference
+    formatting, citation management, and figure generation WITHOUT the
+    research-rigor ceremony (no pre-registration, honest-pivot, experiment
+    tooling, or research modes).
+
+    Usage from a local checkout (repo root):
+      amplifier run --bundle ./bundles/paper-only.yaml "Draft a NeurIPS paper on ..."
+
+includes:
+  - bundle: git+https://github.com/microsoft/amplifier-foundation@main
+  - bundle: research:behaviors/paper-authoring.md
+---
+
+# Research Bundle — Paper-Only Variant
+
+The focused paper-authoring surface of the research bundle. Use this when you
+want to write and format a paper without the full research-discipline pipeline.
+For the complete rigor workflow (hypothesis → pre-registration → experiment →
+honest-pivot → venue-ready output), use the root `bundle.md` instead.

@@ -7,7 +7,7 @@ bundle:
 agents:
   include:
     - research:venue-formatter
-    - research:technical-writer
+    - research:research-technical-writer
 
 context:
   include:

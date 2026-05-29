@@ -6,7 +6,7 @@ bundle:
 
 tools:
   - module: tool-paperbanana
-    source: git+https://github.com/michaeljabbour/amplifier-module-tool-paperbanana@main
+    source: ../modules/tool-paperbanana
     config:
       default_max_iterations: 3
       output_dir: "figures"
