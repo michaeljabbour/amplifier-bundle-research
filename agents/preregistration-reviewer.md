@@ -121,6 +121,7 @@ The K-Dense skill provides the critical-thinking methodology framework. This age
 - **Conflating "specific" with "locked."** A plan that says "we'll test several things" is not a pre-registration yet. Pre-registration names what will be tested, in what order, with what corrected alpha.
 - **Letting disconfirmation be implicit.** The reviewer must surface the exact boundary: "If p > 0.05, we will conclude no effect." If the author hasn't thought through the failure case, the pre-registration is not ready.
 - **Assuming academic context.** Non-academic studies (patent searches, policy evidence reviews) still need falsifiable predictions and explicit analysis plans — the statistical framework is just different.
+- **Intervention surface and measurement protocol are disjoint and frozen.** If the plan declares `experiment_loop`, verify `intervention_surface` and `measurement_protocol` share no files, that the loop can only edit the surface, and that `held_out_confirmation` is reserved and never referenced by the search. Reject if they overlap — an overlap lets the loop tune its own metric (goalpost-moving).
 
 ## Common pre-registration pitfalls
 
