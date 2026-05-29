@@ -13,7 +13,7 @@
 
 ## Agent Delegation Guidance
 
-This bundle provides **10 specialized agents**. Modes invoke them automatically — users rarely need to name them directly.
+This bundle provides **11 specialized agents**. Modes invoke them automatically — users rarely need to name them directly.
 
 ### hypothesis-designer
 **When invoked:** `/question` mode

@@ -49,7 +49,8 @@ steps:
         - rationale (string): why this intervention is worth trying next
         - prediction (string): expected direction and magnitude of effect on
           the primary metric
-        - files_changed (list of strings): surface files modified
+        - files_touched (list of strings): surface files modified (must be a
+          strict subset of the files listed in intervention_surface_file)
 
       End your response with PROPOSE: followed by the JSON object on one line.
     output: proposal
@@ -128,9 +129,10 @@ steps:
 
       Emit a JSON dict with EXACTLY these keys:
         - decision (string): "keep" or "revert"
-        - decision_reason (string): one-sentence explanation
-        - kept_improvement (float or null): primary metric delta if kept,
-          null if reverted
+        - decision_reason (string): one-sentence explanation citing the rule and observed metric
+        - kept_improvement (float or null): primary metric delta if kept, null if reverted
+        - prediction_outcome (string): "confirmed", "refuted", or "inconclusive" — informational
+          only, does not affect the decision
 
       End your response with DECIDE: followed by the JSON object on one line.
     output: decision
@@ -144,6 +146,7 @@ steps:
   - id: write-ledger-row
     type: bash
     command: |
+      set -uo pipefail
       ROW=$(mktemp)
       cat > "$ROW" <<EOF
       {
@@ -158,7 +161,7 @@ steps:
       }
       EOF
       bash {{scripts_dir}}/ledger_append.sh "{{ledger_path}}" "$ROW" "ledger: iteration {{iteration_index}}"
-      rm "$ROW"
+      rm -f "$ROW"
 
   - id: emit-iteration-summary
     agent: research:research-coordinator
@@ -166,17 +169,23 @@ steps:
       Summarize this completed iteration of the autonomous experiment loop so
       the parent loop can update its state and decide whether to continue.
 
-      Decision made:   {{decision}}
-      Variance report: {{analysis}}
+      Iteration index:  {{iteration_index}}
+      Ledger path:      {{ledger_path}}
+      Decision made:    {{decision}}
+      Variance report:  {{analysis}}
+
+      Read {{ledger_path}} to determine the best primary metric mean seen across
+      all iterations so far (use the on-disk ledger data, not memory or inference).
 
       Emit a JSON dict with EXACTLY these keys (no extra keys):
         - decision (string): the decision that was applied ("keep" or "revert")
         - kept_improvement (float or null): primary metric improvement if kept,
           null if reverted
         - best_primary_so_far (float or null): best primary metric mean seen
-          across all iterations, including this one
+          across all iterations, including this one (sourced from the ledger)
         - should_stop (string): "true" if the loop should terminate after this
           iteration (e.g. convergence reached, diminishing returns, or budget
           exhausted), "false" otherwise
+        - next_iteration_index (integer): {{iteration_index}} + 1
     output: iteration_summary
     parse_json: true

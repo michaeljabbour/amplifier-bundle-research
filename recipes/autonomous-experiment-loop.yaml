@@ -89,10 +89,15 @@ stages:
         output: iteration_result
         parse_json: true
         while_condition: "{{should_stop}} != 'true'"
+        # NOTE: max_while_iterations is a hard engine cap and is intentionally
+        # kept at 10 regardless of the max_iterations context variable.  If you
+        # change the default for max_iterations you must also update this value
+        # manually (the recipe engine does not evaluate arithmetic in this field).
         max_while_iterations: 10
         break_when: "{{should_stop}} == 'true'"
         update_context:
           should_stop: "{{iteration_result.iteration_summary.should_stop}}"
+          iteration_index: "{{iteration_result.iteration_summary.next_iteration_index}}"
 
   - name: promotion-gate
     steps:

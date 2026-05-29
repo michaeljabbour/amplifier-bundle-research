@@ -67,7 +67,7 @@ The loop produces an append-only `ledger.yaml` instead of a single-pass log and 
 - The apparatus is frozen in the hash-locked plan; `/execute` never edits it.
 - The loop may only mutate files inside `intervention_surface`; this is enforced by `scripts/experiment-loop/freeze_gate.sh`.
 
-See also: `context/autonomous-loop-awareness.md` and `skills/conducting-autonomous-experiments/SKILL.md`.
+See also: `context/autonomous-loop-awareness.md` *(Phase 3 — not yet created)* and `skills/conducting-autonomous-experiments/SKILL.md` *(Phase 3 — not yet created)*.
 
 ## Reproducibility requirements
 

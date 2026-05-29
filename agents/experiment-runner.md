@@ -78,6 +78,8 @@ Does not: edit measurement protocol or eval harness; touch files outside interve
 
 All fields are required. `files_touched` must be a strict subset of `intervention_surface`. Reject the proposal internally (re-generate) if any file falls outside the surface.
 
+> **Field alignment:** The recipe prompt uses `files_touched` (this file is the source of truth). Any recipe prompt referencing PROPOSE output must use `files_touched`.
+
 ---
 
 ## Output contract — DECIDE
@@ -86,11 +88,12 @@ All fields are required. `files_touched` must be a strict subset of `interventio
 {
   "decision": "keep | revert",
   "decision_reason": "<mechanical application of keep_revert_rule; cite the rule and the observed metric>",
+  "kept_improvement": "<float: primary metric delta if kept, null if reverted>",
   "prediction_outcome": "confirmed | refuted | inconclusive"
 }
 ```
 
-`decision` is derived solely from `keep_revert_rule`. `prediction_outcome` is informational for the experiment ledger and does not influence the decision.
+`decision` is derived solely from `keep_revert_rule`. `kept_improvement` is the numeric delta consumed by `emit-iteration-summary` to track `best_primary_so_far`. `prediction_outcome` is informational for the experiment ledger and does not influence the decision.
 
 ---
 
