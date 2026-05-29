@@ -10,8 +10,9 @@ bundle:
     research-rigor ceremony (no pre-registration, honest-pivot, experiment
     tooling, or research modes).
 
-    Usage from a local checkout (repo root):
-      amplifier run --bundle ./bundles/paper-only.yaml "Draft a NeurIPS paper on ..."
+    Usage (register once, then run by name):
+      amplifier bundle add ./bundles/paper-only.md
+      amplifier run --bundle research-paper-only "Draft a NeurIPS paper on ..."
 
 includes:
   - bundle: git+https://github.com/microsoft/amplifier-foundation@main
