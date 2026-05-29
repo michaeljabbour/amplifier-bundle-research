@@ -1,0 +1,4 @@
+# a file INSIDE the smoke intervention_surface
+# scripted smoke edits this file, an in-surface change, so freeze_gate.sh PASSES
+# editing anything outside tests/fixtures/smoke-experiment/ would be rejected
+intervention-baseline
