@@ -40,10 +40,11 @@ What's missing is the **closed autonomous loop** that ties data → analysis →
 ### Locked decisions (from brainstorm)
 
 1. **Scope:** full closed system (not method-only, not method+recipe).
-2. **Loop home:** fold into the existing `/execute` mode — no new mode. Single-pass is `max_iterations: 1`, which proves backward compatibility.
+2. **Loop home:** fold into the existing `/execute` mode — no new mode. Plans without an `intervention_surface` never engage the loop and behave exactly as today; a plan that declares one engages the loop. `max_iterations: 1` is a degenerate single-iteration loop (not the legacy path — see the Dispatch contract and Edge cases).
 3. **Proposer:** a NEW dedicated agent `experiment-runner` (not folded into `research-coordinator`).
 4. **Ledger:** implemented as a TEMPLATE + recipe + git — NO new Python module.
 5. **Experiment boundary:** an executable `run_command` emitting a primary scalar metric PLUS guardrail metrics (+ optional artifacts). Not single-metric (avoids monoculture); not a fully-open collect step (preserves comparability).
+6. **Judge panel:** judgment-based metrics and the promotion-gate verdict use a cross-vendor multi-LLM judge panel (ensemble + meta-reviewer), pinned in the locked plan (see [Cross-vendor multi-LLM judge panel](#amendment--cross-vendor-multi-llm-judge-panel)).
 
 ## Architecture
 
@@ -57,14 +58,26 @@ Five NEW amplifier-native artifacts; no new Python module, no new mode.
 | Template | `templates/experiment-ledger.yaml` | The disciplined descendant of autoresearch's `results.tsv` — the schema for each iteration row. |
 | Context | `context/autonomous-loop-awareness.md` | When to use the loop, and its honest limits. |
 
+### Dispatch contract
+
+`modes/execute.md` is **EDITED** (it is a modified file, not unchanged) to detect when the locked pre-registration declares an `intervention_surface`:
+
+- **Present** → `execute.md` invokes `recipes/autonomous-experiment-loop.yaml`.
+- **Absent** → `execute.md` behaves exactly as today (single-pass), unchanged in observable output.
+
+No NEW mode is added; the loop is reached purely through this dispatch.
+
 ### Reused unchanged
 
-- `/execute` mode — gains loop behavior via the recipe.
 - All six `tool-experiment-*` modules.
 - `preregistration-reviewer`.
 - `statistician` + `tool-experiment-power`.
 - `honest-critic` / `honest-pivot` / exploratory-labeling.
 - git — the keep/revert substrate.
+
+### Skills source
+
+`skills/` does not yet exist in this bundle — `conducting-autonomous-experiments` is its first owned skill. Implementation note: `bundle.md` must declare/confirm the skills source so `skills/conducting-autonomous-experiments/SKILL.md` is discoverable (per the tool-skills config pattern).
 
 ### Boundary discipline
 
@@ -76,7 +89,7 @@ Only `bash` (the `run_command`) and `git` touch the filesystem at runtime; both 
 
 ### Section 1 — The frozen apparatus (scientific core)
 
-We reproduce autoresearch's "agent may edit `train.py`, never `prepare.py`/eval" discipline using the bundle's **existing** sha256 pre-registration hash-lock — no new mechanism.
+We reproduce autoresearch's "agent may edit `train.py`, never `prepare.py`/eval" discipline. The frozen declarations live inside the bundle's **existing** sha256 pre-registration hash-locked plan — no new lock mechanism. Their *enforcement* (intervention-surface/measurement-protocol disjointness, and rejecting out-of-surface commits) is NEW recipe logic: a `bash` gate that checks changed files (`git diff --name-only`) against the frozen `intervention_surface` allowlist.
 
 During `/study-plan`, the locked pre-registration is extended to declare four **frozen** things:
 
@@ -89,7 +102,7 @@ All four live inside the hash-locked plan. `preregistration-reviewer` gains a ch
 
 > "intervention surface and measurement protocol are disjoint and frozen."
 
-Changing the apparatus requires a NEW pre-registration (new hash) — never an in-loop edit. This structurally prevents goalpost-moving (silently tuning the metric until results look good); the apparatus is sealed before any data is seen.
+Changing the apparatus requires a NEW pre-registration (new hash) — never an in-loop edit. This procedurally prevents goalpost-moving (silently tuning the metric until results look good); the apparatus is sealed before any data is seen.
 
 ### Section 2 — Loop mechanics & the `experiment-runner` agent
 
@@ -98,10 +111,10 @@ The engine is `recipes/autonomous-experiment-loop.yaml` (a `while`/`break_when` 
 1. **PROPOSE** — `experiment-runner` reads the locked plan + ledger-so-far and proposes the next intervention WITH a written rationale and a directional prediction. Every change is a mini-hypothesis, not a random tweak — the discipline autoresearch lacks. It edits only files inside the frozen `intervention_surface` and commits (git = keep/revert substrate).
 2. **COLLECT** — the recipe runs the frozen `run_command` via `bash` under the pre-registered budget, repeated across the declared seeds; stdout/artifacts captured. Before the FIRST run, `tool-experiment-provenance-check`'s pre-experiment gate confirms all input data files are git-tracked (hard stop if not).
 3. **ANALYZE** — primary + guardrail metrics are parsed per seed; `statistician` / `tool-experiment-power` compute mean + variance across seeds (n>1, fixing autoresearch's n=1 flaw); `tool-experiment-audit` checks run integrity (handler errors, empty/duplicate outputs).
-4. **DECIDE** — `experiment-runner` applies the pre-registered keep/revert rule (keep iff the primary improves beyond noise AND no guardrail regresses past tolerance). Keep → advance branch; reject → `git reset HEAD~1`. Every outcome is stamped **exploratory** by default.
-5. **LOG** — append a ledger row.
+4. **DECIDE** — `experiment-runner` applies the pre-registered keep/revert rule (keep iff the primary improves beyond noise AND no guardrail regresses past tolerance). Keep → advance branch; reject → `git reset --hard HEAD~1` on the intervention commit only. Every outcome is stamped **exploratory** by default.
+5. **LOG** — append a ledger row and commit the ledger *separately, after* the keep/revert decision (never in the same commit as the intervention), so a reverted intervention never deletes ledger rows.
 
-**Stop conditions** (from the locked plan): `max_iterations` reached, `patience` exhausted (N iterations with no kept improvement → plateau), or `budget` consumed. `max_iterations: 1` degenerates cleanly to today's single-pass `/execute`.
+**Stop conditions** (from the locked plan): `max_iterations` reached, `patience` exhausted (N iterations with no kept improvement → plateau), or `budget` consumed. `max_iterations: 1` is a degenerate single-iteration loop; plans without an `intervention_surface` never engage the loop at all and behave exactly as today.
 
 **Boundaries:** recipe = control flow; agent = scientific judgment; tools = compute; git = record. The agent never touches the measurement protocol or stopping rule (frozen).
 
@@ -138,7 +151,7 @@ Example row structure:
     - {name: peak_vram_mb, mean: 38120, tolerance: "≤ 40000", regressed: false}
   decision: keep                        # keep | revert
   decision_reason: "primary improved beyond 2×sd; no guardrail regression"
-  label: exploratory                    # exploratory | confirmatory (flipped only by promotion gate)
+  label: exploratory                    # exploratory by default; promotion gate appends a confirmation: block (not in-place edit)
   audit_verdict: PASS                   # from tool-experiment-audit
   artifacts: ["run.log", "loss_curve.png"]
   timestamp: "2026-05-29T07:30:00Z"
@@ -147,15 +160,19 @@ Example row structure:
 ### Data flow per iteration
 
 ```
-experiment-runner writes a PENDING row (intervention / rationale / prediction)
+experiment-runner proposes + commits the intervention (intervention commit)
   → recipe runs `bash` collect across seeds
   → tools populate metrics / audit
-  → experiment-runner writes `decision` + `decision_reason`
-  → git commit (keep)  OR  git reset HEAD~1 (revert)
+  → experiment-runner decides keep/revert
+  → if revert: `git reset --hard HEAD~1` on the intervention commit only
+  → append the ledger row (intervention / rationale / prediction / decision / decision_reason)
+  → commit the ledger SEPARATELY (its own commit, after the decision)
   → row finalized
 ```
 
-The git SHA in `commit` links each row to its diff, so the ledger + git history together reconstruct the entire search. The promotion gate later rewrites `label` for confirmed candidates and appends a `confirmation:` block.
+The ledger file is **committed separately and after** the keep/revert decision — never in the same commit as the intervention — and it is **tracked but lives outside the `intervention_surface`**, so it is never part of a reverted commit. This is why "a broken intervention is data": reverting the intervention with `git reset --hard HEAD~1` removes only the intervention's code change, while the ledger row recording that failure is committed afterward and survives.
+
+The git SHA in `commit` links each row to its diff, so the ledger + git history together reconstruct the entire search. The promotion gate later **appends a `confirmation:` block (carrying the new label)** to a confirmed candidate's row rather than mutating the existing row in place, preserving the ledger's append-only audit property.
 
 The ledger lives at the study's working dir (e.g. `experiments/<study>/ledger.yaml`); the template ships the schema + a header comment, not a location mandate.
 
@@ -163,7 +180,7 @@ The ledger lives at the study's working dir (e.g. `experiments/<study>/ledger.ya
 
 ### Failure handling within the loop (descended from autoresearch's crash/timeout policy)
 
-- **Run crash / non-zero exit** → ledger row `decision: revert`, `audit_verdict: ERROR`, `git reset HEAD~1`; the loop continues (a broken intervention is data, not a stop).
+- **Run crash / non-zero exit** → `git reset --hard HEAD~1` on the intervention commit, *then* append the ledger row (`decision: revert`, `audit_verdict: ERROR`) and commit the ledger separately; the loop continues (a broken intervention is data, not a stop — the ledger row survives the revert because it lives outside `intervention_surface` and is committed after the reset).
 - **Budget timeout** → that seed is recorded as incomplete; if a quorum of seeds fail, the iteration is reverted.
 - **Integrity failure** (`tool-experiment-audit` returns FAIL/SUSPICIOUS — handler-error cascade, empty/duplicate outputs) → the iteration's metrics are NOT trusted; auto-revert and flag the row.
 - **Provenance gate fails** (untracked input data) → hard stop *before* iteration 1; the loop refuses to start.
@@ -171,7 +188,7 @@ The ledger lives at the study's working dir (e.g. `experiments/<study>/ledger.ya
 
 ### Edge cases
 
-- **`max_iterations: 1`** → single-pass, identical to today's `/execute` (the degenerate case proves backward compatibility).
+- **`max_iterations: 1`** → a degenerate single-iteration loop (it still runs the loop code path and emits `ledger.yaml`; it is NOT byte-identical to today's `/execute`, which emits `execution-log.yaml`/`evidence-log.yaml`). Backward compatibility comes from the Dispatch contract: plans *without* an `intervention_surface` never engage the loop and behave exactly as today.
 - **Plateau** (`patience` exhausted, no kept improvement) → terminate honestly, carry best-so-far into the promotion gate.
 - **Promotion gate confirms nothing** → the recipe returns a null result; `/draft` reports it as such (honest-pivot).
 - **Loop interrupted/resumed** → `tool-experiment-resume` (plan/subset/merge) reconciles partial ledgers; the ledger + git history are the resumable state.
@@ -187,7 +204,7 @@ No new Python, so testing is at the config/integration layer:
 
 ## Amendment — Cross-vendor multi-LLM judge panel
 
-Wherever the loop relies on **judgment** rather than a deterministic number, the design uses a **cross-vendor multi-LLM judge panel** (e.g., Claude Opus 4.8 + GPT-5.5) — never a single model — directly reusing the bundle's existing cross-vendor-judge work (see `cache-only-verify.yaml` / `cross-vendor-judge`) and the `ml-paper-reviewer` ensemble + meta-reviewer pattern. It applies at three points:
+Wherever the loop relies on **judgment** rather than a deterministic number, the design uses a **cross-vendor multi-LLM judge panel** (e.g., Claude Opus 4.8 + GPT-5.5) — never a single model — directly reusing the bundle's existing cross-vendor-judge assets (`behaviors/cross-vendor-judge.md`, `context/orchestrated-loop-judge-rubric.md`) and the `agents/ml-paper-reviewer.md` ensemble + meta-reviewer pattern. It applies at three points:
 
 1. **LLM-judged metrics in the loop (Section 2, COLLECT/ANALYZE).** autoresearch's `val_bpb` is deterministic, but "anything scientific" includes LLM-judged outcomes (correctness, quality). When the pre-registered `primary_metric` or a guardrail requires a judge, **each item is scored by the panel**; the metric is the agreed score, and **inter-judge agreement (Cohen's κ)** is recorded per iteration. The judge panel + their models are part of the **frozen** measurement protocol (Section 1) — judges cannot be swapped mid-loop to manufacture a win.
 
@@ -206,8 +223,8 @@ Panel composition (models, count, meta-reviewer) is configurable via the routing
 
 ### Open questions
 
-- Exact default κ threshold for the judge-disagreement SUSPICIOUS flag (pin during implementation).
-- Whether the loop recipe extends the existing `orchestrated-loop.yaml` or stands alone. **Lean:** stand-alone sibling — `orchestrated-loop` adjudicates residuals, whereas this optimizes a scalar metric over interventions — but confirm in `/write-plan`.
+- Exact default κ threshold for the judge-disagreement SUSPICIOUS flag (pin during implementation). It should be pinned in the pre-registration template **schema** (not left implicit), so it is hash-locked per study.
+- Whether the loop recipe extends the existing `orchestrated-loop.yaml` or stands alone. **Lean:** stand-alone sibling — `orchestrated-loop` adjudicates residuals, whereas this optimizes a scalar metric over interventions — but confirm in `/write-plan`. Note this choice also affects whether `tool-experiment-resume` can reconcile partial ledgers (a stand-alone recipe owns its own resumable ledger state; extending `orchestrated-loop` would need the resume contract threaded through that recipe's state).
 
 ### Attribution
 
