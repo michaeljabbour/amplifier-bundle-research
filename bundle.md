@@ -1,7 +1,7 @@
 ---
 bundle:
   name: research
-  version: 0.8.5
+  version: 0.9.0
   description: |
     Superpowers for scientific rigor. From sharpened question to venue-ready
     output, with pre-registration discipline and honest-pivot defaults baked
@@ -47,6 +47,8 @@ agents:
     - research:ml-paper-reviewer         # gene-transferred from AI-Scientist (NeurIPS rubric + ensemble + calibration warning)
     - research:literature-scout          # gene-transferred from AI-Scientist (agentic Semantic Scholar novelty search)
     - research:idea-generator            # gene-transferred from AI-Scientist (3-axis Interestingness x Feasibility x Novelty + reflection + archive injection)
+    # v0.9.0 addition (autonomous experiment loop):
+    - research:experiment-runner         # scientist-in-the-loop: proposes interventions + applies keep/revert
 
 # --------------------------------------------------------------------------
 # Tools — first-class capabilities with Python implementations.
@@ -99,6 +101,13 @@ tools:
     mount: amplifier_research_provenance_check:mount
   - path: modules/tool-experiment-block-hypothesis
     mount: amplifier_research_block_hypothesis:mount
+# --------------------------------------------------------------------------
+# Skills — research bundle's own skills, discoverable via load_skill.
+# Path-based, pointing at this bundle's own skills/ directory.
+# Skills load lazily on demand via load_skill tool.
+# --------------------------------------------------------------------------
+skills:
+  - path: skills
 ---
 
 # Research Bundle
