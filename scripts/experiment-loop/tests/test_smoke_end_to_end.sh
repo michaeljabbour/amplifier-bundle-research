@@ -58,6 +58,7 @@ fi
 cat > r2.txt <<'EOF'
 - iteration: 2
   decision: revert
+  label: exploratory
 EOF
 
 bash "$DECIDE" revert >/dev/null
@@ -76,6 +77,7 @@ fi
 cat > r3.txt <<'EOF'
 - iteration: 3
   decision: keep
+  label: exploratory
 EOF
 
 bash "$DECIDE" keep >/dev/null

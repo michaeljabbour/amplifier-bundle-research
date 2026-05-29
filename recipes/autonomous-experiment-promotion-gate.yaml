@@ -159,7 +159,7 @@ steps:
     command: |
       set -uo pipefail
       BLOCK=$(mktemp)
-      cat > "$BLOCK" << YAML_EOF
+      cat > "$BLOCK" <<'YAML_EOF'
       {{confirmation.confirmation_yaml}}
       YAML_EOF
       bash {{scripts_dir}}/promote.sh "{{ledger_path}}" "$BLOCK" "ledger: promote confirmed candidates (held-out + BH + panel)"
