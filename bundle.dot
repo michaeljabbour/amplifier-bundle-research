@@ -1,113 +1,85 @@
-// Research bundle: a toolkit of AI assistants that help with the full
-// academic research workflow — from sharpening hypotheses and running
-// stats to drafting papers, making figures, formatting for conferences,
-// and auditing experiment integrity before trusting results.
+// amplifier-bundle-research — architecture
+// A research-rigor toolkit: sharpen a question, lock the method, run it,
+// critique it honestly, draft it, and format it for the venue — backed by
+// specialist agents, always-on discipline, experiment-integrity tools, and
+// figure/LaTeX/venue knowledge.
 digraph research {
-    rankdir=LR
-    fontname="Helvetica"
-    fontsize=12
-    label="Research Bundle — AI Assistants for Academic Work\nHypothesis design, statistics, writing, figures, venue formatting, experiment integrity\nresearch v0.6.0 — bundle repo"
-    labelloc=t
-    labeljust=c
-    nodesep=0.6
-    ranksep=0.7
-    bgcolor="white"
+  rankdir=TB;
+  bgcolor="white";
+  fontname="Helvetica"; fontsize=18;
+  labelloc=t; labeljust=c;
+  label="amplifier-bundle-research\nSuperpowers for scientific rigor — from a sharpened question to a venue-ready artifact";
 
-    node [fontname="Helvetica", fontsize=11, style="filled,rounded"]
-    edge [fontname="Helvetica", fontsize=9]
+  node [fontname="Helvetica", fontsize=11, shape=box, style="filled,rounded", penwidth=0];
+  edge [fontname="Helvetica", fontsize=9, color="#666666"];
+  nodesep=0.35; ranksep=0.75;
 
-    root_research [label="Research Toolkit (main bundle)\nresearch v0.7.0\n6 tools · 0 agents\n~5500 tok aggregate", shape=box, fillcolor="#80cbc4", style="filled,rounded,bold", penwidth=2]
+  // ---- Entry points ----
+  entry  [label="amplifier bundle add --app …research\n(full pipeline)", shape=note, fillcolor="#b3e0d8"];
+  paper  [label="bundles/paper-only.md\n(lean “just write a paper” variant)", shape=note, fillcolor="#d8efe9"];
 
-    subgraph cluster_standalones {
-        label="Standalone Bundles — used on their own"
-        style="filled"
-        fillcolor="#f9f9f9"
-        color="#999999"
+  // ---- The pipeline spine ----
+  subgraph cluster_pipeline {
+    label="Workflow  ·  six slash-command stages"; fontsize=13; color="#4C72B0"; style="rounded"; penwidth=1.5;
+    node [fillcolor="#dce6f5"];
+    q   [label="/question\nsharpen the claim"];
+    sp  [label="/study-plan\nlock method · pre-register"];
+    ex  [label="/execute\nrun · gather · pull evidence"];
+    cr  [label="/critique\nhonest peer review"];
+    dr  [label="/draft\nbuild the artifact"];
+    pub [label="/publish\nformat for venue (gated)"];
+    q -> sp -> ex -> cr -> dr -> pub [color="#4C72B0", penwidth=1.5];
+  }
 
-        sta_dev [label="Developer Tools\ndev", shape=box, fillcolor="#80cbc4", style="filled,rounded"]
-    }
+  // ---- Specialist agents (14), grouped by the stage they serve ----
+  subgraph cluster_agents {
+    label="Specialist agents (14)"; fontsize=13; color="#55A868"; style="rounded"; penwidth=1.5;
+    node [fillcolor="#e2f0e6"];
+    a_q   [label="Question & method\nhypothesis-designer · methodologist\npreregistration-reviewer"];
+    a_ev  [label="Evidence & ideas\nstatistician · literature-scout\nidea-generator"];
+    a_rev [label="Review\nhonest-critic · ml-paper-reviewer"];
+    a_au  [label="Authoring\nresearch-paper-architect · research-technical-writer\nresearch-citation-manager · venue-formatter · figure-designer"];
+    a_orch[label="Orchestration\nresearch-coordinator", fillcolor="#cfe6d6"];
+  }
 
-    subgraph cluster_agents {
-        label="Research Assistants (Agents) — each a specialist for one part of the workflow"
-        style="filled"
-        fillcolor="#f9f9f9"
-        color="#999999"
+  // ---- Always-on discipline (behaviors) ----
+  subgraph cluster_behaviors {
+    label="Always-on discipline (behaviors)"; fontsize=13; color="#C44E52"; style="rounded"; penwidth=1.5;
+    node [fillcolor="#f6e0e1"];
+    b1 [label="honest-pivot · exploratory-labeling\nseparate confirmatory from exploratory"];
+    b2 [label="stop-slop · cross-vendor-judge\ncache-only-verification\nprose quality · bias-resistant review"];
+  }
 
-        agt_citation_manager [label="Citations & Bibliography\ncitation-manager\n~235 tok desc", shape=box, fillcolor="#c8e6c9", style="filled,rounded"]
-        agt_figure_designer [label="Charts & Figures\nfigure-designer\n~276 tok desc", shape=box, fillcolor="#c8e6c9", style="filled,rounded"]
-        agt_honest_critic [label="Tough-Love Reviewer\nhonest-critic\n~235 tok desc", shape=box, fillcolor="#c8e6c9", style="filled,rounded"]
-        agt_hypothesis_designer [label="Research Question Shaper\nhypothesis-designer\n~202 tok desc", shape=box, fillcolor="#c8e6c9", style="filled,rounded"]
-        agt_methodologist [label="Study Design Advisor\nmethodologist\n~232 tok desc", shape=box, fillcolor="#c8e6c9", style="filled,rounded"]
-        agt_preregistration_reviewer [label="Pre-Study Plan Checker\npreregistration-reviewer\n~244 tok desc", shape=box, fillcolor="#c8e6c9", style="filled,rounded"]
-        agt_research_coordinator [label="Workflow Orchestrator\nresearch-coordinator\n~240 tok desc", shape=box, fillcolor="#c8e6c9", style="filled,rounded"]
-        agt_statistician [label="Stats & Analysis Guide\nstatistician\n~231 tok desc", shape=box, fillcolor="#c8e6c9", style="filled,rounded"]
-        agt_technical_writer [label="Paper & Brief Drafter\ntechnical-writer\n~259 tok desc", shape=box, fillcolor="#c8e6c9", style="filled,rounded"]
-        agt_venue_formatter [label="Conference & Venue Formatter\nvenue-formatter\n~239 tok desc", shape=box, fillcolor="#c8e6c9", style="filled,rounded"]
-    }
+  // ---- Tools & knowledge ----
+  subgraph cluster_tools {
+    label="Tools & knowledge"; fontsize=13; color="#8172B3"; style="rounded"; penwidth=1.5;
+    node [fillcolor="#ece8f3"];
+    t_exp [label="Experiment-integrity tools (6)\naudit · power · provenance\nresume · stage-analysis · hypothesis-block"];
+    t_fig [label="PaperBanana figure tool\nmulti-agent · 8 quality vetoes"];
+    t_kn  [label="Venue knowledge (9)\nNeurIPS · ICML · ACL · IEEE · ACM · arXiv\nUSPTO · policy memo · NSF/NIH grant", fillcolor="#f6f1df"];
+    t_tpl [label="LaTeX templates · skeletons\nreproducibility stack", fillcolor="#f6f1df"];
+  }
 
-    subgraph cluster_tools {
-        label="Tools (Capabilities) — Python modules that run checks or generate artifacts"
-        style="filled"
-        fillcolor="#f9f9f9"
-        color="#999999"
+  // ---- Document recipes ----
+  recipes [label="Document recipes (10)\npatent-brief · policy-brief · white-paper\nempirical · benchmark · replication · grant\nliterature-review · idea-generation · paperbanana-figure",
+           shape=box, style="filled,rounded", fillcolor="#fbe9d0"];
 
-        tool_experiment_audit [label="Experiment Integrity Audit\ntool-experiment-audit v0.1.0\n10 checks · PASS/FAIL/SUSPICIOUS\n~480 tok desc", shape=box, fillcolor="#bbdefb", style="filled,rounded"]
-        tool_experiment_resume [label="Experiment Resume/Repair\ntool-experiment-resume v0.1.0\nplan · subset · merge\n~420 tok desc", shape=box, fillcolor="#bbdefb", style="filled,rounded"]
-        tool_experiment_power [label="Experiment Power Analysis\ntool-experiment-power v0.1.0\nrequired-n · mde · post-hoc · sensitivity\n~500 tok desc", shape=box, fillcolor="#bbdefb", style="filled,rounded"]
-        tool_experiment_stage_analyzer [label="Stage-Trace Failure Analyzer\ntool-experiment-stage-analyzer v0.1.0\nanalyze · hypothesis-test\n~520 tok desc", shape=box, fillcolor="#bbdefb", style="filled,rounded"]
-        tool_experiment_block_hypothesis [label="Block Hypothesis Evaluator\ntool-experiment-block-hypothesis v0.1.0\nanalyze-rule-firing · ablation-summary\ndomain-sensitivity · block-evaluation-verdict\n~540 tok desc", shape=box, fillcolor="#bbdefb", style="filled,rounded"]
-        tool_experiment_provenance_check [label="Pre-Experiment Provenance Audit\ntool-experiment-provenance-check v0.1.0\naudit-script · check-files · pre-experiment-gate\n~560 tok desc", shape=box, fillcolor="#bbdefb", style="filled,rounded"]
-    }
+  // ---- Wiring (kept sparse for readability) ----
+  entry -> q [style=bold];
+  paper -> dr [style=dashed, label="paper slice"];
+  recipes -> q [style=dotted, label="one-shot"];
 
-    subgraph cluster_context {
-        label="Shared Instructions — background knowledge every assistant reads"
-        style="filled"
-        fillcolor="#f9f9f9"
-        color="#999999"
+  a_q   -> sp  [style=dashed, color="#55A868"];
+  a_ev  -> ex  [style=dashed, color="#55A868"];
+  a_rev -> cr  [style=dashed, color="#55A868"];
+  a_au  -> dr  [style=dashed, color="#55A868"];
+  a_orch-> q   [style=dashed, color="#55A868"];
 
-        ctx_instructions_md [label="How-to-use guide\ninstructions.md\n~2490 tok", shape=box, fillcolor="#e1bee7", style="filled,rounded"]
-        ctx_integrity_awareness [label="Experiment Integrity Awareness\nexperiment-integrity-awareness.md\n~900 tok", shape=box, fillcolor="#e1bee7", style="filled,rounded"]
-        ctx_resume_awareness [label="Experiment Resume Awareness\nexperiment-resume-awareness.md\n~700 tok", shape=box, fillcolor="#e1bee7", style="filled,rounded"]
-        ctx_power_awareness [label="Experiment Power Awareness\nexperiment-power-awareness.md\n~800 tok", shape=box, fillcolor="#e1bee7", style="filled,rounded"]
-        ctx_stage_analyzer_awareness [label="Stage Analyzer Awareness\nexperiment-stage-analyzer-awareness.md\n~900 tok", shape=box, fillcolor="#e1bee7", style="filled,rounded"]
-        ctx_block_hypothesis_awareness [label="Block Hypothesis Awareness\nexperiment-block-hypothesis-awareness.md\n~850 tok", shape=box, fillcolor="#e1bee7", style="filled,rounded"]
-        ctx_provenance_awareness [label="Provenance Check Awareness\nexperiment-provenance-awareness.md\n~950 tok", shape=box, fillcolor="#e1bee7", style="filled,rounded"]
-    }
+  b1 -> cr [style=dashed, color="#C44E52"];
+  b2 -> pub [style=dashed, color="#C44E52"];
 
-    subgraph cluster_legend {
-        label="Legend — what each shape and color means"
-        style="filled"
-        fillcolor="white"
-        color="#cccccc"
-        fontsize=9
-
-        leg_root [label="main bundle", shape=box, fillcolor="#80cbc4", style="filled,rounded,bold", fontsize=9]
-        leg_behavior [label="behavior (how-to rule)", shape=box, fillcolor="#e0f2f1", style="filled,rounded", fontsize=9]
-        leg_agent [label="agent (assistant)", shape=box, fillcolor="#c8e6c9", style="filled,rounded", fontsize=9]
-        leg_module [label="module (code piece)", shape=box, fillcolor="#bbdefb", style="filled,rounded", fontsize=9]
-        leg_provider [label="provider (AI service)", shape=box, fillcolor="#e0e0e0", style="filled,rounded", fontsize=9]
-        leg_context [label="context (reference doc)", shape=box, fillcolor="#e1bee7", style="filled,rounded", fontsize=9]
-        leg_standalone [label="standalone bundle", shape=box, fillcolor="#80cbc4", style="filled,rounded", fontsize=9]
-        leg_experiment [label="experimental piece", shape=box, fillcolor="#e1bee7", style="filled,rounded", fontsize=9]
-        leg_ext_cost [label="external, adds cost", shape=box, fillcolor="#80cbc4", style="dashed", color="red", penwidth=2, fontsize=9]
-        leg_ext_muted [label="external, free", shape=box, fillcolor="#f5f5f5", style="dashed", fontsize=9]
-    }
-
-    disclaimer [label="How to read the numbers:\nToken estimates use ~4 characters per token\nSolid border = lives in this repo (counted)\nDashed + red = pulled from elsewhere, adds hidden cost\nDashed + muted = pulled from elsewhere, no cost\nNot included: sub-sessions, runtime-dynamic content", shape=note, fillcolor="#eceff1", style="filled", fontsize=9]
-
-
-    root_research -> ctx_instructions_md [style=dotted, color=purple]
-    root_research -> ctx_integrity_awareness [style=dotted, color=purple]
-    root_research -> ctx_resume_awareness [style=dotted, color=purple]
-    root_research -> tool_experiment_audit [label="mounts", color="#1565c0"]
-    root_research -> tool_experiment_resume [label="mounts", color="#1565c0"]
-    root_research -> tool_experiment_power [label="mounts", color="#1565c0"]
-    root_research -> tool_experiment_stage_analyzer [label="mounts", color="#1565c0"]
-    root_research -> tool_experiment_provenance_check [label="mounts", color="#1565c0"]
-    root_research -> ctx_power_awareness [style=dotted, color=purple]
-    root_research -> ctx_stage_analyzer_awareness [style=dotted, color=purple]
-    root_research -> ctx_provenance_awareness [style=dotted, color=purple]
-    root_research -> tool_experiment_block_hypothesis [label="mounts", color="#1565c0"]
-    root_research -> ctx_block_hypothesis_awareness [style=dotted, color=purple]
-    sta_dev -> root_research [label="extends", style=dashed]
+  t_exp -> ex  [style=dashed, color="#8172B3"];
+  t_fig -> dr  [style=dashed, color="#8172B3"];
+  t_kn  -> pub [style=dashed, color="#8172B3"];
+  t_tpl -> pub [style=dashed, color="#8172B3"];
 }
